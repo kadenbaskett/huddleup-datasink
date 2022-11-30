@@ -1,0 +1,21 @@
+{
+  "parser": "@typescript-eslint/parser",
+  "extends": ["prettier", "plugin:@typescript-eslint/recommended"],
+  "parserOptions": {
+    "ecmaVersion": 2018,
+    "sourceType": "module"
+  },
+  "rules": {
+    "quotes": ["error", "single"],
+    "@typescript-eslint/explicit-function-return-type": "off",
+    "no-var": "error",
+    "jsx-quotes": ["error", "prefer-single"],
+    "semi-style": ["error", "last"],
+    "no-mixed-spaces-and-tabs": ["error", "smart-tabs"],
+    "no-multi-spaces": "error",
+    "object-curly-spacing": ["error", "always"],
+    "array-bracket-spacing": ["error", "always"],
+    "semi": ["error", "always"],
+    "comma-dangle": ["error", "always-multiline"]
+  }
+}

@@ -1,8 +1,6 @@
 
 class App {
 
-  constructor() {
-  }
 
   startUpdates()
   {
@@ -11,27 +9,27 @@ class App {
 
   updateTimeframes()
   {
-    console.log("update");
+    console.log('update');
   }
 
   updateTeams()
   {
-    console.log("update");
+    console.log('update');
   }
 
   updateGames()
   {
-    console.log("update");
+    console.log('update');
   }
 
   updatePlayerDetails()
   {
-    console.log("update player");
+    console.log('update player');
   }
 
   updateGamesInProgress()
   {
-    console.log("update games in prog");
+    console.log('update games in prog');
   }
 
 }
