@@ -9,3 +9,28 @@ datasource db {
   provider = "mysql"
   url      = env("DATABASE_URL")
 }
+
+model Timeframe {
+  id               Int            @id @default(autoincrement())
+  current_week     Int
+  current_season   Int
+
+  @@unique([current_season, current_week])
+}
+
+model Player {
+  id               Int            @id @default(autoincrement())
+  name             String
+}
+
+model NFLTeam {
+  id               Int            @id @default(autoincrement())
+}
+
+model NFLGame {
+  id               Int            @id @default(autoincrement())
+}
+
+model League {
+  id               Int            @id @default(autoincrement())
+}
