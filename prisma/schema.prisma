@@ -11,26 +11,41 @@ datasource db {
 }
 
 model Timeframe {
-  id               Int            @id @default(autoincrement())
-  current_week     Int
-  current_season   Int
+  id             Int @id @default(autoincrement())
+  current_week   Int
+  current_season Int
 
   @@unique([current_season, current_week])
 }
 
-model Player {
-  id               Int            @id @default(autoincrement())
-  name             String
+// TODO does a team need a season/year
+model NFLTeam {
+  id          Int      @id @default(autoincrement())
+  external_id Int      @unique
+  key         String
+  city        String
+  name        String
+  players     Player[]
 }
 
-model NFLTeam {
-  id               Int            @id @default(autoincrement())
+// TODO what happens when a player changes teams mid season
+model Player {
+  id          Int     @id @default(autoincrement())
+  external_id Int     @unique
+  nfl_team    NFLTeam @relation(fields: [nfl_team_external_id], references: [external_id])
+  nfl_team_external_id Int
+  first_name  String
+  last_name   String
+  position    String
+  status      String
+  photo_url   String
 }
 
 model NFLGame {
-  id               Int            @id @default(autoincrement())
+  id          Int @id @default(autoincrement())
+  external_id Int @unique
 }
 
 model League {
-  id               Int            @id @default(autoincrement())
+  id Int @id @default(autoincrement())
 }

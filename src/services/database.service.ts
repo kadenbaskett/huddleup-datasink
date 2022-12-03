@@ -1,4 +1,6 @@
 import { 
+    NFLTeam,
+    Player,
     PrismaClient, 
     Timeframe,
 } from '@prisma/client';
@@ -14,7 +16,6 @@ class DatabaseService {
 
     public async setTimeframe(season: number, week: number): Promise<Timeframe>
     {
-        //this.clearTimeframes();
         try 
         {
             const timeframe: Timeframe = await this.client.timeframe.upsert({
@@ -31,9 +32,6 @@ class DatabaseService {
                 },
             });
 
-            const tf = await this.client.timeframe.findMany();
-            console.log(tf);
-
             return timeframe;
         }
         catch(e) {
@@ -41,19 +39,117 @@ class DatabaseService {
         }
     }
 
+    public async getTimeframe(): Promise<Timeframe>
+    {
+        try {
+            const timeframe = await this.client.timeframe.findFirstOrThrow();
+
+            return timeframe;
+        }
+        catch(e)
+        {
+            return null;
+        }
+    }
 
     public async clearTimeframes(): Promise<boolean>
     {
         try 
         {
-            const deleteTimeframes = await this.client.timeframe.deleteMany({});
-            console.log(deleteTimeframes);
-
+            await this.client.timeframe.deleteMany({});
             return true;
         }
         catch(e) {
             return null; 
         }
+    }
+
+    public async setNFLTeams(teams): Promise<NFLTeam[]>
+    {
+        for(const t of teams)
+        {
+            try {
+                const team: NFLTeam = await this.client.nFLTeam.upsert({
+                    where: { 
+                        external_id: t.external_id,
+                    },
+                    update: {
+                        external_id: t.external_id,
+                        name: t.name,
+                        key: t.key,
+                        city: t.city,
+                    },
+                    create: {
+                        external_id: t.external_id,
+                        name: t.name,
+                        key: t.key,
+                        city: t.city,
+                    },
+                }); 
+            }
+            catch(e)
+            {
+                return null;
+            }
+        } 
+    }
+
+    public async getNFLTeams(): Promise<NFLTeam[]>
+    {
+        try {
+            const teams = this.client.nFLTeam.findMany();
+
+            return teams;
+        }
+        catch(e)
+        {
+            return null;
+        }
+    }
+
+    public async setPlayers(players): Promise<Player[]>
+    {
+        for(const p of players)
+        {
+            try {
+                const db_player: Player = await this.client.player.upsert({
+                    where: { 
+                        external_id: p.external_id,
+                    },
+                    update: {
+                        external_id: p.external_id,
+                        first_name: p.first_name,
+                        last_name: p.last_name,
+                        status: p.status,
+                        position: p.position,
+                        photo_url: p.photo_url,
+                        nfl_team_external_id: p.nfl_team_external_id,
+                    },
+                    create: {
+                        external_id: p.external_id,
+                        first_name: p.first_name,
+                        last_name: p.last_name,
+                        status: p.status,
+                        position: p.position,
+                        photo_url: p.photo_url,
+                        nfl_team_external_id: p.nfl_team_external_id,
+                    },
+                }); 
+
+            }
+            catch(e)
+            {
+                console.log(e);
+                console.log(p);
+                return null;
+            }
+        } 
+        const patty = await this.client.player.findFirst({
+            where: {
+                last_name: 'Mahomes',
+            },
+        });
+        console.log(patty);
     }
 
     // public async createLeague(): Promise<League>

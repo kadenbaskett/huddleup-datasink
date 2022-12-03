@@ -37,8 +37,8 @@ class StatsService {
 
   // General NFL endpoints with no params
 
-  public async getNFLTeams(): Promise<respObj> {
-    const url = this.baseScoresURL + 'Teams';
+  public async getNFLTeams(season: number): Promise<respObj> {
+    const url = this.baseScoresURL + 'Teams/' + season;
     return await this.getRequest(url);
   }
 
@@ -72,7 +72,7 @@ class StatsService {
     return await this.getRequest(url);
   }
 
-  public async getAllPlayersDetails(): Promise<respObj> {
+  public async getPlayers(): Promise<respObj> {
     const url = this.baseScoresURL + 'Players';
     return await this.getRequest(url);
   }
