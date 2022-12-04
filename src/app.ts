@@ -40,24 +40,26 @@ class App {
   async printDatabase()
   {
       const timeframe = await this.db.getTimeframe();
-      console.log('Timeframe: ', timeframe);
+      console.log('Timeframe: ', timeframe[0]);
       const teams = await this.db.getNFLTeams();
-      console.log('Teams: ', teams);
+      console.log('Teams: ', teams[0]);
       const schedule = await this.db.getNFLSchedule();
-      console.log('Schedule: ', schedule);
+      console.log('Schedule: ', schedule[0]);
       const players = await this.db.getPlayers();
-      console.log('Players: ', players);
+      console.log('Players: ', players[0]);
+      const stats = await this.db.getPlayerStats();
+      console.log(stats[0]);
   }
 
   async initialUpdate()
   {
-    await this.updateTimeframes();
-    await this.updateTeams();
-    await this.updateSchedule();
-    await this.updatePlayers();
-    //await this.updateGameScoresAndPlayerStats();
+    //await this.updateTimeframes();
+    //await this.updateTeams();
+    //await this.updateSchedule();
+    //await this.updatePlayers();
+    await this.updateGameScoresAndPlayerStats();
 
-    //await this.printDatabase();
+    await this.printDatabase();
   }
 
   async updateTimeframes()
@@ -167,10 +169,11 @@ class App {
             {
               const boxScore = Object(resp.data);
               
-              await this.db.updateScore(boxScore.GameKey, boxScore.homeScore, boxScore.AwayScore);
+              await this.db.updateScore(Number(boxScore.Score.GameKey), boxScore.Score.homeScore, boxScore.Score.AwayScore);
 
               for(const pg of boxScore.PlayerGames)
               {
+                  // Have to use Math.floor to convert floats to Int becuase the data is scrambled
                   const gameStats = {
                     external_player_id: pg.PlayerID,
                     external_game_id: Number(pg.GameKey),

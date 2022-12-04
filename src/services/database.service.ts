@@ -177,7 +177,6 @@ class DatabaseService {
                     external_id: external_game_id,
                 },
                 data: {
-                    external_id: external_game_id,
                     home_score: home_score,
                     away_score: away_score,
                 },
@@ -245,21 +244,17 @@ class DatabaseService {
 
     // ***************** GETTERS ******************
 
-    public async getPlayers(): Promise<Player>
+    public async getPlayers(): Promise<Player[]>
     {
-        const patty = await this.client.player.findFirst({
-            where: {
-                last_name: 'Mahomes',
-            },
-        });
+        const players = await this.client.player.findMany();
 
-        return patty;
+        return players;
     }
 
-    public async getTimeframe(): Promise<Timeframe>
+    public async getTimeframe(): Promise<Timeframe[]>
     {
         try {
-            const timeframe = await this.client.timeframe.findFirstOrThrow();
+            const timeframe = await this.client.timeframe.findMany();
 
             return timeframe;
         }
@@ -304,15 +299,30 @@ class DatabaseService {
         }
     }
 
+    public async getPlayerStats(): Promise<PlayerGameStats[]>
+    {
+        try {
+            const stats = this.client.playerGameStats.findMany();
+
+            return stats;
+        }
+        catch(e)
+        {
+            return null;
+        }
+    }
+
     public async getGamesInProgress(): Promise<NFLGame[]>
     {
         try {
             const games = this.client.nFLGame.findMany({
                 where: {
                     AND: [
-                        { status: { not: 'Final' } },
-                        { status: { not: 'Postponed' } },
-                        { status: { not: 'Canceled' } },
+                        { status: { equals: 'InProgress' } },
+                        // { status: { not: 'Final' } },
+                        // { status: { not: 'Postponed' } },
+                        // { status: { not: 'Canceled' } },
+                        // { status: { not: 'F/OT' } },
                     ],
                 },
             });

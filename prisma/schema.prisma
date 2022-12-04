@@ -64,15 +64,15 @@ model PlayerGameStats {
   id                              Int   @id @default(autoincrement())
   external_player_id              Int
   external_game_id                Int
-  pass_yards                      Float
+  pass_yards                      Int
   pass_attempts                   Int
   completions                     Int
   pass_td                         Int
   interceptions_thrown            Int
   receptions                      Int
   targets                         Int
-  rec_yards                       Float
-  rush_yards                      Float
+  rec_yards                       Int
+  rush_yards                      Int
   rush_attempts                   Int
   rush_td                         Int
   two_point_conversion_passes     Int
