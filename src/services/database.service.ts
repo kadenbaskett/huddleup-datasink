@@ -154,8 +154,8 @@ class DatabaseService {
                         home_team_id: g.home_team_id,
                         status: g.status,
                         external_score_id: g.external_score_id,
-                        home_score: null,
-                        away_score: null,
+                        home_score: 0,
+                        away_score: 0,
                     },
                 }); 
 
@@ -167,6 +167,80 @@ class DatabaseService {
                 return null;
             }
         } 
+    }
+
+    public async updateScore(external_game_id: number, home_score: number, away_score: number)
+    {
+        try {
+            await this.client.nFLGame.update({
+                where: { 
+                    external_id: external_game_id,
+                },
+                data: {
+                    external_id: external_game_id,
+                    home_score: home_score,
+                    away_score: away_score,
+                },
+            }); 
+        }
+        catch(e)
+        {
+            console.log(e);
+        }
+    }
+
+    public async updatePlayerGameStats(gameStats)
+    {
+        try {
+            await this.client.playerGameStats.upsert({
+                where: {
+                    external_game_id_external_player_id: {
+                        external_game_id: gameStats.external_game_id,
+                        external_player_id: gameStats.external_player_id,
+                    },
+                },
+                update: {
+                    external_game_id: gameStats.external_game_id,
+                    external_player_id: gameStats.external_player_id,
+                    pass_yards: gameStats.pass_yards,
+                    pass_attempts: gameStats.pass_attempts,
+                    completions: gameStats.completions,
+                    pass_td: gameStats.pass_td,
+                    interceptions_thrown: gameStats.interceptions_thrown,
+                    receptions: gameStats.receptions,
+                    rec_yards: gameStats.rec_yards,
+                    targets: gameStats.targets,
+                    rush_attempts: gameStats.rush_attempts,
+                    rush_yards: gameStats.rush_yards,
+                    rush_td: gameStats.rush_td,
+                    two_point_conversion_passes: gameStats.two_point_conversion_passes,
+                    two_point_conversion_runs: gameStats.two_point_conversion_runs,
+                    two_point_conversion_receptions: gameStats.two_point_conversion_runs,
+                },
+                create: {
+                    external_game_id: gameStats.external_game_id,
+                    external_player_id: gameStats.external_player_id,
+                    pass_yards: gameStats.pass_yards,
+                    pass_attempts: gameStats.pass_attempts,
+                    completions: gameStats.completions,
+                    pass_td: gameStats.pass_td,
+                    interceptions_thrown: gameStats.interceptions_thrown,
+                    receptions: gameStats.receptions,
+                    rec_yards: gameStats.rec_yards,
+                    targets: gameStats.targets,
+                    rush_attempts: gameStats.rush_attempts,
+                    rush_yards: gameStats.rush_yards,
+                    rush_td: gameStats.rush_td,
+                    two_point_conversion_passes: gameStats.two_point_conversion_passes,
+                    two_point_conversion_runs: gameStats.two_point_conversion_runs,
+                    two_point_conversion_receptions: gameStats.two_point_conversion_runs,
+                },
+            });
+        }
+        catch(e)
+        {
+            console.log(e);
+        }
     }
 
     // ***************** GETTERS ******************
@@ -181,6 +255,7 @@ class DatabaseService {
 
         return patty;
     }
+
     public async getTimeframe(): Promise<Timeframe>
     {
         try {
@@ -190,6 +265,7 @@ class DatabaseService {
         }
         catch(e)
         {
+            console.log(e);
             return null;
         }
     }
@@ -249,64 +325,7 @@ class DatabaseService {
         }
     }
 
-    public async updateScore(external_game_id: number, home_score: number, away_score: number)
-    {
-        try {
-            await this.client.nFLGame.update({
-                where: { 
-                    external_id: external_game_id,
-                },
-                data: {
-                    external_id: external_game_id,
-                    home_score: home_score,
-                    away_score: away_score,
-                },
-            }); 
-        }
-        catch(e)
-        {
-            console.log(e);
-        }
-    }
 
-    public async updatePlayerGameStats(gameStats)
-    {
-        try {
-            await this.client.playerGameStats.upsert({
-                where: { 
-                    external_game_id: gameStats.external_game_id,
-                    external_player_id: gameStats.external_player_id,
-                },
-                update: {
-                    external_game_id: gameStats.external_game_id,
-                    external_player_id: gameStats.external_player_id,
-                },
-                create: {
-                    external_game_id: gameStats.external_game_id,
-                    external_player_id: gameStats.external_player_id,
-                    pass_yards: gameStats.pass_yards,
-                    pass_attempts: gameStats.pass_attempts,
-                    completions: gameStats.completions,
-                    pass_td: gameStats.pass_td,
-                    interceptions_thrown: gameStats.interceptions_thrown,
-                    receptions: gameStats.receptions,
-                    rec_yards: gameStats.rec_yards,
-                    targets: gameStats.targets,
-                    rush_attempts: gameStats.rush_attempts,
-                    rush_yards: gameStats.rush_yards,
-                    rush_td: gameStats.rush_td,
-                    two_point_conversion_passes: gameStats.two_point_conversion_passes,
-                    two_point_conversion_runs: gameStats.two_point_conversion_runs,
-                    two_point_conversion_receptions: gameStats.two_point_conversion_runs,
-                },
-            });
-        }
-        catch(e)
-        {
-            console.log(e);
-        }
-
-    }
 
 }
 

@@ -2,16 +2,20 @@ import { NFLGame, NFLTeam, Player, Timeframe } from '@prisma/client';
 import { respObj } from '@interfaces/respobj.interface';
 import DatabaseService from '@services/database.service';
 import StatsService from '@services/stats.service';
-import { timeStamp } from 'console';
+
+const hoursToMilliseconds = (hours) => {
+  return hours * 60 * 60 * 1000;
+};
 
 // TODO create a config file
 const config = {
-  timeframe: 5000,
-  teams: 5000,
-  players: 5000,
-  schedule: 5000,
-  gamesInProgress: 5000,
+  timeframe: hoursToMilliseconds(1),
+  teams: hoursToMilliseconds(1),
+  players: hoursToMilliseconds(1),
+  schedule: hoursToMilliseconds(1),
+  gamesInProgress: 60000, // Update once a minute
 };
+
 
 class App {
 
@@ -30,26 +34,30 @@ class App {
     setInterval(this.updateTeams.bind(this), config.teams);
     setInterval(this.updatePlayers.bind(this), config.players);
     setInterval(this.updateSchedule.bind(this), config.schedule);
+    setInterval(this.updateGameScoresAndPlayerStats.bind(this), config.gamesInProgress);
   }
 
   async printDatabase()
   {
       const timeframe = await this.db.getTimeframe();
+      console.log('Timeframe: ', timeframe);
       const teams = await this.db.getNFLTeams();
+      console.log('Teams: ', teams);
       const schedule = await this.db.getNFLSchedule();
+      console.log('Schedule: ', schedule);
       const players = await this.db.getPlayers();
-
-      console.log(timeframe[0], teams[0], schedule[0], players[0]);
+      console.log('Players: ', players);
   }
 
   async initialUpdate()
   {
     await this.updateTimeframes();
-    await this.updateSchedule();
+    await this.updateTeams();
     await this.updateSchedule();
     await this.updatePlayers();
+    //await this.updateGameScoresAndPlayerStats();
 
-    await this.printDatabase();
+    //await this.printDatabase();
   }
 
   async updateTimeframes()
@@ -58,8 +66,8 @@ class App {
 
     if(resp.data)
     {
-      const timeframe = Object(resp.data);
-      await this.db.setTimeframe(Number(timeframe.Season), Number(timeframe.Year));
+      const timeframe = Object(resp.data[0]);
+      await this.db.setTimeframe(Number(timeframe.Season), Number(timeframe.Week));
     }
   }
 
@@ -126,12 +134,13 @@ class App {
         {
           const data = Object(resp.data);
 
-          const games: NFLGame[] = data.map(g => {
+          const games: NFLGame[] = data.filter(g => g.GameKey).map(g => {
+
               return {
-                external_id: g.GameKey,
+                external_id: Number(g.GameKey),
                 season: g.Season,
                 week: g.Week,
-                date: g.Date,
+                date: new Date(g.Date),
                 away_team_id: g.GlobalAwayTeamID,
                 home_team_id: g.GlobalHomeTeamID,
                 status: g.Status,
@@ -164,21 +173,21 @@ class App {
               {
                   const gameStats = {
                     external_player_id: pg.PlayerID,
-                    external_game_id: pg.GameKey,
-                    pass_yards: pg.PassingYards,
-                    pass_attempts: pg.PassingAttempts,
-                    completions: pg.PassingCompletions,
-                    pass_td: pg.PassingTouchdowns,
-                    interceptions_thrown: pg.PassingInterceptions,
-                    receptions: pg.Receptions,
-                    rec_yards: pg.ReceivingYards,
-                    targets: pg.ReceivingTargets,
-                    rush_attempts: pg.RushingAttempts,
-                    rush_yards: pg.RushingYards,
-                    rush_td: pg.RushingTouchdowns,
-                    two_point_conversion_passes: pg.TwoPointConversionPasses,
-                    two_point_conversion_runs: pg.TwoPointConversionRuns,
-                    two_point_conversion_receptions: pg.TwoPointConversionReceptions,
+                    external_game_id: Number(pg.GameKey),
+                    pass_yards: Math.floor(pg.PassingYards),
+                    pass_attempts: Math.floor(pg.PassingAttempts),
+                    completions: Math.floor(pg.PassingCompletions),
+                    pass_td: Math.floor(pg.PassingTouchdowns),
+                    interceptions_thrown: Math.floor(pg.PassingInterceptions),
+                    receptions: Math.floor(pg.Receptions),
+                    rec_yards: Math.floor(pg.ReceivingYards),
+                    targets: Math.floor(pg.ReceivingTargets),
+                    rush_attempts: Math.floor(pg.RushingAttempts),
+                    rush_yards: Math.floor(pg.RushingYards),
+                    rush_td: Math.floor(pg.RushingTouchdowns),
+                    two_point_conversion_passes: Math.floor(pg.TwoPointConversionPasses),
+                    two_point_conversion_runs: Math.floor(pg.TwoPointConversionRuns),
+                    two_point_conversion_receptions: Math.floor(pg.TwoPointConversionReceptions),
                   };
 
                   await this.db.updatePlayerGameStats(gameStats);

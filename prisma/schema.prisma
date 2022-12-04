@@ -62,8 +62,8 @@ model NFLGame {
 // TODO add foriegn key relation for external player and game ids?
 model PlayerGameStats {
   id                              Int   @id @default(autoincrement())
-  external_player_id              Int   @unique
-  external_game_id                Int   @unique
+  external_player_id              Int
+  external_game_id                Int
   pass_yards                      Float
   pass_attempts                   Int
   completions                     Int
@@ -78,6 +78,8 @@ model PlayerGameStats {
   two_point_conversion_passes     Int
   two_point_conversion_receptions Int
   two_point_conversion_runs       Int
+
+  @@unique([external_game_id, external_player_id])
 }
 
 model League {
