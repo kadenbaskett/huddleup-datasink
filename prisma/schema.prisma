@@ -9,3 +9,75 @@ datasource db {
   provider = "mysql"
   url      = env("DATABASE_URL")
 }
+
+model Timeframe {
+  id             Int @id @default(autoincrement())
+  current_week   Int
+  current_season Int
+
+  @@unique([current_season, current_week])
+}
+
+// TODO does a team need a season/year
+model NFLTeam {
+  id          Int       @id @default(autoincrement())
+  external_id Int       @unique
+  key         String
+  city        String
+  name        String
+  players     Player[]
+  home_games  NFLGame[] @relation("home_team")
+  away_games  NFLGame[] @relation("away_team")
+}
+
+// TODO what happens when a player changes teams mid season
+model Player {
+  id                   Int     @id @default(autoincrement())
+  external_id          Int     @unique
+  nfl_team             NFLTeam @relation(fields: [nfl_team_external_id], references: [external_id])
+  nfl_team_external_id Int
+  first_name           String
+  last_name            String
+  position             String
+  status               String
+  photo_url            String
+}
+
+model NFLGame {
+  id                Int      @id @default(autoincrement())
+  external_id       Int      @unique
+  season            Int
+  week              Int
+  date              DateTime
+  away_team         NFLTeam  @relation("away_team", fields: [away_team_id], references: [external_id])
+  away_team_id      Int
+  home_team         NFLTeam  @relation("home_team", fields: [home_team_id], references: [external_id])
+  home_team_id      Int
+  status            String
+  external_score_id Int
+  home_score        Int
+  away_score        Int
+}
+
+// TODO add foriegn key relation for external player and game ids?
+model PlayerGameStats {
+  id                              Int   @id @default(autoincrement())
+  external_player_id              Int
+  external_game_id                Int
+  pass_yards                      Int
+  pass_attempts                   Int
+  completions                     Int
+  pass_td                         Int
+  interceptions_thrown            Int
+  receptions                      Int
+  targets                         Int
+  rec_yards                       Int
+  rush_yards                      Int
+  rush_attempts                   Int
+  rush_td                         Int
+  two_point_conversion_passes     Int
+  two_point_conversion_receptions Int
+  two_point_conversion_runs       Int
+
+  @@unique([external_game_id, external_player_id])
+}
