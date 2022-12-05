@@ -81,7 +81,3 @@ model PlayerGameStats {
 
   @@unique([external_game_id, external_player_id])
 }
-
-model League {
-  id Int @id @default(autoincrement())
-}
