@@ -43,23 +43,23 @@ class App {
       console.log('Timeframe: ', timeframe[0]);
       const teams = await this.db.getNFLTeams();
       console.log('Teams: ', teams[0]);
-      const schedule = await this.db.getNFLSchedule();
+      const schedule = await this.db.getAllNFLGames();
       console.log('Schedule: ', schedule[0]);
       const players = await this.db.getPlayers();
       console.log('Players: ', players[0]);
-      const stats = await this.db.getPlayerStats();
-      console.log(stats[0]);
+      const stats = await this.db.getAllPlayerStats();
+      console.log('Stats: ', stats[0]);
   }
 
   async initialUpdate()
   {
-    //await this.updateTimeframes();
-    //await this.updateTeams();
-    //await this.updateSchedule();
-    //await this.updatePlayers();
+    await this.updateTimeframes();
+    await this.updateTeams();
+    await this.updateSchedule();
+    await this.updatePlayers();
     await this.updateGameScoresAndPlayerStats();
 
-    await this.printDatabase();
+    //await this.printDatabase();
   }
 
   async updateTimeframes()
@@ -199,8 +199,6 @@ class App {
         }
       }
   }
-
-
 }
 
 

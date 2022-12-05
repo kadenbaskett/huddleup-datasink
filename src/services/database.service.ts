@@ -6,6 +6,7 @@ import {
     Timeframe,
     PlayerGameStats,
 } from '@prisma/client';
+import { isNull } from 'util';
 
 class DatabaseService {
 
@@ -29,7 +30,7 @@ class DatabaseService {
                         current_week: week,
                     },
                  },
-                update: {},
+                update: {}, // Don't update if the current season and week match
                 create: {
                     current_season: season,
                     current_week: week,
@@ -39,6 +40,7 @@ class DatabaseService {
             return timeframe;
         }
         catch(e) {
+           console.log(e);
            return null; 
         }
     }
@@ -68,6 +70,8 @@ class DatabaseService {
             }
             catch(e)
             {
+                console.log(e);
+                console.log(t);
                 return null;
             }
         } 
@@ -122,6 +126,7 @@ class DatabaseService {
         }
         catch(e)
         {
+            console.log(e);
             return null;
         }
     }
@@ -184,6 +189,7 @@ class DatabaseService {
         }
         catch(e)
         {
+            console.log(external_game_id, home_score, away_score);
             console.log(e);
         }
     }
@@ -238,6 +244,7 @@ class DatabaseService {
         }
         catch(e)
         {
+            console.log(gameStats);
             console.log(e);
         }
     }
@@ -246,17 +253,8 @@ class DatabaseService {
 
     public async getPlayers(): Promise<Player[]>
     {
-        const players = await this.client.player.findMany();
-
-        return players;
-    }
-
-    public async getTimeframe(): Promise<Timeframe[]>
-    {
         try {
-            const timeframe = await this.client.timeframe.findMany();
-
-            return timeframe;
+            return await this.client.player.findMany();
         }
         catch(e)
         {
@@ -265,7 +263,76 @@ class DatabaseService {
         }
     }
 
-    public async getTeamsNFLGames(external_team_id: number): Promise<NFLGame[]>
+    public async getTimeframe(): Promise<Timeframe>
+    {
+        try {
+            return await this.client.timeframe.findFirst();
+        }
+        catch(e)
+        {
+            console.log(e);
+            return null;
+        }
+    }
+
+
+    public async getAllNFLGames(): Promise<NFLGame[]>
+    {
+        try {
+            return this.client.nFLGame.findMany();
+        }
+        catch(e)
+        {
+            console.log(e);
+            return null;
+        }
+    }
+
+    public async getAllPlayerStats(): Promise<PlayerGameStats[]>
+    {
+        try {
+            return this.client.playerGameStats.findMany();
+        }
+        catch(e)
+        {
+            console.log(e);
+            return null;
+        }
+    }
+
+    public async getGamesInProgress(): Promise<NFLGame[]>
+    {
+        try {
+            const games = this.client.nFLGame.findMany({
+                where: { status: 'InProgress' },
+            });
+
+            return games;
+        }
+        catch(e)
+        {
+            console.log(e);
+            return null;
+        }
+    }
+
+    public async getPlayerDetails(external_player_id): Promise<Player>
+    {
+        try {
+            const player = await this.client.player.findFirstOrThrow({
+                where: { external_id: external_player_id },
+            });
+
+            return player;
+        }
+        catch(e)
+        {
+            console.log(e);
+            return null;
+        }
+    }
+
+    public async getTeamNFLGames(external_team_id: number): Promise<NFLGame[]>
     {
         try {
             const games = this.client.nFLGame.findMany({
@@ -282,60 +349,10 @@ class DatabaseService {
         }
         catch(e)
         {
+            console.log(e);
             return null;
         }
     }
-
-    public async getNFLSchedule(): Promise<NFLGame[]>
-    {
-        try {
-            const games = this.client.nFLGame.findMany();
-
-            return games;
-        }
-        catch(e)
-        {
-            return null;
-        }
-    }
-
-    public async getPlayerStats(): Promise<PlayerGameStats[]>
-    {
-        try {
-            const stats = this.client.playerGameStats.findMany();
-
-            return stats;
-        }
-        catch(e)
-        {
-            return null;
-        }
-    }
-
-    public async getGamesInProgress(): Promise<NFLGame[]>
-    {
-        try {
-            const games = this.client.nFLGame.findMany({
-                where: {
-                    AND: [
-                        { status: { equals: 'InProgress' } },
-                        // { status: { not: 'Final' } },
-                        // { status: { not: 'Postponed' } },
-                        // { status: { not: 'Canceled' } },
-                        // { status: { not: 'F/OT' } },
-                    ],
-                },
-            });
-
-            return games;
-        }
-        catch(e)
-        {
-            return null;
-        }
-    }
-
-
 
 }
 
