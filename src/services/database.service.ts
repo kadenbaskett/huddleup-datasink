@@ -6,7 +6,6 @@ import {
     Timeframe,
     PlayerGameStats,
 } from '@prisma/client';
-import { isNull } from 'util';
 
 class DatabaseService {
 
@@ -305,6 +304,23 @@ class DatabaseService {
         try {
             const games = this.client.nFLGame.findMany({
                 where: { status: 'InProgress' },
+            });
+
+            return games;
+        }
+        catch(e)
+        {
+            console.log(e);
+            return null;
+        }
+    }
+
+
+    public async getCompletedGames(): Promise<NFLGame[]>
+    {
+        try {
+            const games = this.client.nFLGame.findMany({
+                where: { status: 'Final' },
             });
 
             return games;

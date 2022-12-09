@@ -48,18 +48,23 @@ class App {
       const players = await this.db.getPlayers();
       console.log('Players: ', players[0]);
       const stats = await this.db.getAllPlayerStats();
-      console.log('Stats: ', stats[0]);
+      // const cmc = stats.filter((gamelog) => gamelog.external_player_id === 18877);
+      // console.log('Stats: ', cmc);
   }
 
   async initialUpdate()
   {
+    console.log('Seeding the db with the initial data');
     await this.updateTimeframes();
     await this.updateTeams();
     await this.updateSchedule();
     await this.updatePlayers();
+    console.log('Adding all games to the db...');
+    await this.updateCompletedGames();
+    console.log('all games added to the db');
     await this.updateGameScoresAndPlayerStats();
 
-    //await this.printDatabase();
+    await this.printDatabase();
   }
 
   async updateTimeframes()
@@ -153,6 +158,52 @@ class App {
           await this.db.setNFLSchedule(games);
         }
     }
+  }
+
+
+  async updateCompletedGames()
+  {
+      const gamesCompleted = await this.db.getCompletedGames();
+
+      if(gamesCompleted.length)
+      {
+        for(const game of gamesCompleted)
+        {
+            const resp: respObj = await this.stats.getBoxScore(game.external_score_id);
+
+            if(resp.data)
+            {
+              const boxScore = Object(resp.data);
+              
+              await this.db.updateScore(Number(boxScore.Score.GameKey), boxScore.Score.homeScore, boxScore.Score.AwayScore);
+
+              for(const pg of boxScore.PlayerGames)
+              {
+                  // Have to use Math.floor to convert floats to Int becuase the data is scrambled
+                  const gameStats = {
+                    external_player_id: pg.PlayerID,
+                    external_game_id: Number(pg.GameKey),
+                    pass_yards: Math.floor(pg.PassingYards),
+                    pass_attempts: Math.floor(pg.PassingAttempts),
+                    completions: Math.floor(pg.PassingCompletions),
+                    pass_td: Math.floor(pg.PassingTouchdowns),
+                    interceptions_thrown: Math.floor(pg.PassingInterceptions),
+                    receptions: Math.floor(pg.Receptions),
+                    rec_yards: Math.floor(pg.ReceivingYards),
+                    targets: Math.floor(pg.ReceivingTargets),
+                    rush_attempts: Math.floor(pg.RushingAttempts),
+                    rush_yards: Math.floor(pg.RushingYards),
+                    rush_td: Math.floor(pg.RushingTouchdowns),
+                    two_point_conversion_passes: Math.floor(pg.TwoPointConversionPasses),
+                    two_point_conversion_runs: Math.floor(pg.TwoPointConversionRuns),
+                    two_point_conversion_receptions: Math.floor(pg.TwoPointConversionReceptions),
+                  };
+
+                  await this.db.updatePlayerGameStats(gameStats);
+              }
+            }
+        }
+      }
   }
 
   async updateGameScoresAndPlayerStats()
