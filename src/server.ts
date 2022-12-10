@@ -1,7 +1,7 @@
 import App from '@/app';
 import Seed from './seed';
 
-const init = true; // Do we need to fill the DB with NFL stats? (it takes a few minutes to do so)
+const init = false; // Do we need to fill the DB with NFL stats? (it takes a few minutes to do so)
 const dev = true;
 const app = new App();
 

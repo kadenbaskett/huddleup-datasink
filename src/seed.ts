@@ -18,28 +18,38 @@ class Seed {
   async seedDB()
   {
     await this.clearLeagueStuff();
-    await this.simulateLeague('Hunter Biden Fan Club');
+
+    const numLeagues = 3;
+    const numUsers = 12;
+    const users = await this.createUsers(numUsers);
+    const commish = users[Math.floor(Math.random() * users.length)]; 
+    const leagueNames = this.generateLeagueNames(numLeagues);
+
+    for(let i = 0; i < leagueNames.length; i++)
+    {
+      await this.simulateLeague(users, leagueNames[i], commish);
+    }
+
   }
 
   async clearLeagueStuff()
   {
-    await this.client.rosterPlayer.deleteMany();
-    await this.client.roster.deleteMany();
-    await this.client.team.deleteMany();
-    await this.client.league.deleteMany();
-    await this.client.user.deleteMany();
-    await this.client.teamSettings.deleteMany();
+    // await this.client.league.deleteMany();
+    // await this.client.team.deleteMany();
+    // await this.client.teamSettings.deleteMany();
+    // await this.client.rosterPlayer.deleteMany();
+    // await this.client.roster.deleteMany();
+    // await this.client.user.deleteMany();
   }
 
-  async simulateLeague(name)
+  async simulateLeague(users, name, commish)
   {
     const numTeams = 12;
     const weeks = 18;
     const season = 2022;
     const teamNames = this.generateTeamNames(numTeams);
+    console.log(commish);
 
-    const users = await this.createUsers(numTeams);
-    const commish = users[Math.floor(Math.random() * users.length)]; 
     const league = await this.createLeague(name, commish.id);
     const teams = await this.createTeams(league, users, teamNames);
 
@@ -131,7 +141,7 @@ class Seed {
 
       await this.client.userToTeam.create({
         data: {
-          team_id: team.league_id,
+          team_id: resp.id,
           user_id: users[i].id,
           is_captain: true,
         },
@@ -253,7 +263,7 @@ class Seed {
     return names;
   }
 
-  async createUsernames(num)
+  createUsernames(num)
   {
     const base = 'user';
     const users = [];
@@ -265,6 +275,20 @@ class Seed {
 
     return users;
   }
+
+  generateLeagueNames(numLeagues)
+  {
+    const names = [];
+    const rand = Math.round(Math.random() * 1000);
+
+    for(let i = 0; i < numLeagues; i++)
+    {
+      names.push('League ' + i * rand);
+    }
+
+    return names;
+  }
+
 
 
 
