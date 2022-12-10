@@ -315,7 +315,7 @@ ALTER TABLE `NFLGame` ADD CONSTRAINT `NFLGame_away_team_id_fkey` FOREIGN KEY (`a
 ALTER TABLE `NFLGame` ADD CONSTRAINT `NFLGame_home_team_id_fkey` FOREIGN KEY (`home_team_id`) REFERENCES `NFLTeam`(`external_id`) ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE `PlayerGameStats` ADD CONSTRAINT `PlayerGameStats_team_id_fkey` FOREIGN KEY (`team_id`) REFERENCES `Team`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE `PlayerGameStats` ADD CONSTRAINT `PlayerGameStats_team_id_fkey` FOREIGN KEY (`team_id`) REFERENCES `NFLTeam`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE `PlayerGameStats` ADD CONSTRAINT `PlayerGameStats_player_id_fkey` FOREIGN KEY (`player_id`) REFERENCES `Player`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;

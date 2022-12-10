@@ -114,8 +114,8 @@ model User {
   id           Int          @id @default(autoincrement())
   username     String
   email        String
-  TeamManagers UserToTeam[]
-  League       League[]
+  user_to_team UserToTeam[]
+  leagues_user_is_commish       League[]
 }
 
 model UserToTeam {
@@ -188,7 +188,7 @@ model NFLTeam {
   current_players Player[]
   home_games      NFLGame[]         @relation("home_team")
   away_games      NFLGame[]         @relation("away_team")
-  PlayerGameStats PlayerGameStats[]
+  player_game_stats PlayerGameStats[]
 }
 
 model Player {

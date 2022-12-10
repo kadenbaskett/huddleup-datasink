@@ -28,6 +28,7 @@ class Seed {
     await this.client.team.deleteMany();
     await this.client.league.deleteMany();
     await this.client.user.deleteMany();
+    await this.client.teamSettings.deleteMany();
   }
 
   async simulateLeague(name)
@@ -37,10 +38,10 @@ class Seed {
     const season = 2022;
     const teamNames = this.generateTeamNames(numTeams);
 
-    const users = await this.createUsers();
+    const users = await this.createUsers(numTeams);
     const commish = users[Math.floor(Math.random() * users.length)]; 
     const league = await this.createLeague(name, commish.id);
-    const teams = await this.createTeams(league, teamNames);
+    const teams = await this.createTeams(league, users, teamNames);
 
     console.log(teams);
 
@@ -67,9 +68,9 @@ class Seed {
     }
   }
 
-  async createUsers()
+  async createUsers(numUsers)
   {
-   const userNames = await this.createUsernames(12);
+   const userNames = await this.createUsernames(numUsers);
    const users = [];
 
    for(const name of userNames)
@@ -108,7 +109,7 @@ class Seed {
     return resp;
   }
 
-  async createTeams(league, teamNames)
+  async createTeams(league, users, teamNames)
   {
     const teams = [];
 
@@ -127,6 +128,14 @@ class Seed {
       const resp = await this.client.team.create({
         data: team,
       }); 
+
+      await this.client.userToTeam.create({
+        data: {
+          team_id: team.league_id,
+          user_id: users[i].id,
+          is_captain: true,
+        },
+      });
 
       teams.push(resp);
     }
@@ -246,7 +255,7 @@ class Seed {
 
   async createUsernames(num)
   {
-    const base = 'User ';
+    const base = 'user';
     const users = [];
 
     for(let i = 0; i < num; i++)
