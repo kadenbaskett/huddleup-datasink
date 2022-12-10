@@ -1,205 +1,257 @@
-import DatabaseService from '@services/database.service';
-import StatsService from '@services/stats.service';
-import { League, Roster, RosterPlayer, Team, User } from '@prisma/client';
+import { PrismaClient } from '@prisma/client';
 
+
+/*
+ *  Seeds the database with mock data. The simulate league function will
+ *  create new users, leagues, teams, rosters, and roster players
+ */
 class Seed {
 
-  stats: StatsService;
-  db: DatabaseService;
+  client: PrismaClient;
 
   constructor()
   {
-    this.stats = new StatsService();
-    this.db = new DatabaseService();
+    this.client = new PrismaClient();
   }
 
   async seedDB()
   {
-    await this.createUsers();
-    await this.createLeagues();
-    await this.createTeams();
-    await this.createRosters();
-    await this.createRostersPlayers();
+    await this.clearLeagueStuff();
+    await this.simulateLeague('Hunter Biden Fan Club');
   }
 
-  randomString(start: string)
+  async clearLeagueStuff()
   {
-    return `${start} ${Math.floor(Math.random() * 10)}`;
+    await this.client.user.deleteMany();
+    await this.client.league.deleteMany();
+    await this.client.team.deleteMany();
+    await this.client.roster.deleteMany();
+    await this.client.rosterPlayer.deleteMany();
+  }
+
+  async simulateLeague(name)
+  {
+    const numTeams = 12;
+    const weeks = 18;
+    const season = 2022;
+    const teamNames = this.generateTeamNames(numTeams);
+
+    const users = await this.createUsers();
+    const commish = users[Math.floor(Math.random() * users.length)]; 
+    const league = await this.createLeague(name, commish.id);
+    const teams = await this.createTeams(league, teamNames);
+
+    for(let week = 1; week <= weeks; week++)
+    {
+      const playerIdsUsed = [];
+
+      for(const team of teams)
+      {
+        const roster = await this.buildRandomRoster(week, team.id, season, playerIdsUsed);
+        if(roster.players)
+        {
+          const rosterPlayerIds = roster.players.map(p => p.id);
+          playerIdsUsed.push(rosterPlayerIds);
+        }
+      }
+    }
   }
 
   async createUsers()
   {
-    const users: User[] = [
-      {
-        id: 1,
-        username: 'joe', 
-        email: 'joe@gmail.com',
-      },
-      {
-        id: 2,
-        username: 'jake', 
-        email: 'jake@gmail.com',
-      },
-      {
-        id: 3,
-        username: 'kaden', 
-        email: 'kaden@gmail.com',
-      },
-      {
-        id: 4,
-        username: 'justin', 
-        email: 'justin@gmail.com',
-      },
-   ];
+   const userNames = await this.createUsernames(12);
+   const users = [];
+
+   for(const name of userNames)
+   {
+      const u = {
+        userNames: name,
+        email: `${name}@gmail.com`,
+      };
+      users.push(u);
+   }
+
+   const createdUsers = [];
 
     for(const user of users)
     {
-        const resp = await this.db.client.user.upsert({
+        const resp = await this.client.user.upsert({
             where: { 
               id: user.id,
             },
             update: user,
             create: user,
         }); 
-        console.log(resp);
+        createdUsers.push(resp);
     }
+
+    return createdUsers;
   }
 
-  async createLeagues()
+  async createLeague(name, commishID)
   {
-    const leagues: League[] = [
-      {
-          id: 1,
-          name: 'Hunter renfroe fan club',
-          commissioner_id: 1,
-      },
-      {
-          id: 2,
-          name: 'Joe Bidens clique',
-          commissioner_id: 2,
-      },
-        
-    ];
+    const league = {
+        name: name,
+        commissioner_id: commishID,
+    };
 
-    for(const league of leagues)
-    {
-        const resp = await this.db.client.league.upsert({
-            where: { 
-              id: league.id,
-            },
-            update: league,
-            create: league,
-        }); 
-        console.log(resp);
-    }
+    const resp = await this.client.league.create({
+      data: league,
+    }); 
+
+    return resp;
   }
 
-  async createTeams()
+  async createTeams(league, teamNames)
   {
-    const teams: Team[] = [
-      {
-          id: 1,
-          name: 'Joe team',
-          league_id: 1,
-          team_settings_id: 1,
-      },
-      {
-          id: 2,
-          name: 'Jake team',
-          league_id: 1,
-          team_settings_id: 2,
-      },
-    ];
+    const teams = [];
 
-    for(const team of teams)
+    for(let i = 0; i < teamNames.length; i++)
     {
-      const t = await this.db.client.teamSettings.upsert({
-            where: { 
-              id: team.team_settings_id,
-            },
-            update: {
-              id: team.team_settings_id,
-            },
-            create: {
-              id: team.team_settings_id,
-            },
+      const ts = await this.client.teamSettings.create({
+        data: {},
       });
 
-      console.log(t);
+      const team = {
+          name: teamNames[i],
+          league_id: league.id,
+          team_settings_id: ts.id,
+      };
+      console.log(team);
 
-        const resp = await this.db.client.team.upsert({
-            where: { 
-              id: team.id,
-            },
-            update: team,
-            create: team,
-        }); 
-        console.log(resp);
+      const resp = await this.client.team.create({
+        data: team,
+      }); 
+
+      teams.push(resp);
     }
+
+    return teams;
   }
 
 
-  async createRosters()
+  async buildRandomRoster(week, teamId, season, playerIdsUsed)
   {
-    const rosters: Roster[] = [
-      {
-          id: 1,
-          week: 1,
-          teamId: 1,
-          season: 2022,
-      },
-      {
-          id: 2,
-          week: 1,
-          teamId: 1,
-          season: 2022,
-      },
-    ];
+    const r = {
+        week,
+        teamId,
+        season,
+    };
 
-    for(const roster of rosters)
+    const roster = await this.client.roster.create({
+      data: r,
+    }); 
+
+    const constraints = {
+      'QB': 1,
+      'RB': 2,
+      'WR': 3,
+      'TE': 1,
+      'FLEX': 1,
+      'TOTAL': 15,
+    };
+    
+    const players = await this.client.player.findMany();
+    this.shuffleArray(players);
+
+    for(const p of players)
     {
-        const resp = await this.db.client.roster.upsert({
-            where: { 
-              id: roster.id,
-            },
-            update: roster,
-            create: roster,
-        }); 
-        console.log(resp);
+      const rp = {
+        external_id: p.external_id,
+        position: p.position,
+        roster_id: roster.id,
+      };
+
+      if(playerIdsUsed.includes(rp.external_id))
+      {
+        console.log('skip');
+        // Skip the player if someone owns them already
+        continue;
+      }
+      else if(constraints[p.position])
+      {
+        await this.client.rosterPlayer.create({
+          data: rp,
+        });
+
+        constraints[rp.position]--;
+      }
+      else if (constraints['FLEX'] && p.position in [ 'RB', 'WR', 'TE' ])
+      {
+        rp.position = 'FLEX';
+
+        await this.client.rosterPlayer.create({
+          data: rp,
+        });
+
+        constraints[rp.position]--;
+      }
+      else if(constraints['TOTAL'])
+      {
+        rp.position = 'BE';
+
+        await this.client.rosterPlayer.create({
+          data: rp,
+        });
+
+        constraints[rp.position]--;
+      }
+      
+      constraints['TOTAL']--;
+
+      if(!constraints['TOTAL'])
+      {
+        break;
+      }
+    }
+
+    const created = this.client.roster.findFirstOrThrow({
+      where: {
+        id: roster.id,
+      },
+      include: {
+        players: true,
+      },
+    });
+
+    return created;
+  }
+
+
+  // Helper methods that don't interact with the database
+
+  shuffleArray(array) {
+    for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [ array[i], array[j] ] = [ array[j], array[i] ];
     }
   }
-  
-  async createRostersPlayers()
+
+  generateTeamNames(numTeams)
   {
-    const rps: RosterPlayer[] = [
-      {
-          id: 1,
-          external_id: 4314,
-          position: 'QB',
-          roster_id: 1,
-      },
-      {
-          id: 2,
-          external_id: 18877,
-          position: 'RB',
-          roster_id: 1,
-      },
-    ];
+    const names = [];
+    const rand = Math.round(Math.random() * 1000);
 
-    for(const r of rps)
+    for(let i = 0; i < numTeams; i++)
     {
-        const resp = await this.db.client.rosterPlayer.upsert({
-            where: { 
-              id: r.id,
-            },
-            update: r,
-            create: r,
-        }); 
-        console.log(resp);
+      names.push('Team ' + i * rand);
     }
+
+    return names;
   }
 
+  async createUsernames(num)
+  {
+    const base = 'User ';
+    const users = [];
 
+    for(let i = 0; i < num; i++)
+    {
+      users.push(`${base}${i}`);
+    }
+
+    return users;
+  }
 
 
 
