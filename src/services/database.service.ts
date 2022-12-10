@@ -58,12 +58,14 @@ class DatabaseService {
                         name: t.name,
                         key: t.key,
                         city: t.city,
+                        season: t.season,
                     },
                     create: {
                         external_id: t.external_id,
                         name: t.name,
                         key: t.key,
                         city: t.city,
+                        season: t.season,
                     },
                 }); 
             }
@@ -93,7 +95,7 @@ class DatabaseService {
                         status: p.status,
                         position: p.position,
                         photo_url: p.photo_url,
-                        nfl_team_external_id: p.nfl_team_external_id,
+                        current_nfl_team_external_id: p.nfl_team_external_id,
                     },
                     create: {
                         external_id: p.external_id,
@@ -102,7 +104,7 @@ class DatabaseService {
                         status: p.status,
                         position: p.position,
                         photo_url: p.photo_url,
-                        nfl_team_external_id: p.nfl_team_external_id,
+                        current_nfl_team_external_id: p.nfl_team_external_id,
                     },
                 }); 
 
@@ -176,7 +178,7 @@ class DatabaseService {
     public async updateScore(external_game_id: number, home_score: number, away_score: number)
     {
         try {
-            await this.client.nFLGame.update({
+            const game = await this.client.nFLGame.update({
                 where: { 
                     external_id: external_game_id,
                 },
@@ -185,11 +187,14 @@ class DatabaseService {
                     away_score: away_score,
                 },
             }); 
+
+            return game;
         }
         catch(e)
         {
             console.log(external_game_id, home_score, away_score);
             console.log(e);
+            return null;
         }
     }
 
@@ -220,6 +225,9 @@ class DatabaseService {
                     two_point_conversion_passes: gameStats.two_point_conversion_passes,
                     two_point_conversion_runs: gameStats.two_point_conversion_runs,
                     two_point_conversion_receptions: gameStats.two_point_conversion_runs,
+                    player_id: gameStats.player_id,
+                    team_id: gameStats.team_id,
+                    game_id: gameStats.game_id,
                 },
                 create: {
                     external_game_id: gameStats.external_game_id,
@@ -238,6 +246,9 @@ class DatabaseService {
                     two_point_conversion_passes: gameStats.two_point_conversion_passes,
                     two_point_conversion_runs: gameStats.two_point_conversion_runs,
                     two_point_conversion_receptions: gameStats.two_point_conversion_runs,
+                    player_id: gameStats.player_id,
+                    team_id: gameStats.team_id,
+                    game_id: gameStats.game_id,
                 },
             });
         }
@@ -331,6 +342,65 @@ class DatabaseService {
             return null;
         }
     }
+
+
+    /*********** HELPER METHODS *************/
+
+    public async externalToInternalPlayer(external_id: number)
+    {
+        try {
+            const player = await this.client.player.findFirstOrThrow({
+                where: {
+                    external_id: external_id,
+                },
+            });
+
+            return player.id;
+        }
+        catch(e)
+        {
+            // console.log(e, external_id);
+            return null;
+        }
+    }
+
+    public async externalToInternalNFLTeam(external_id: number)
+    {
+        try {
+            const team = await this.client.nFLTeam.findFirstOrThrow({
+                where: {
+                    external_id: external_id,
+                },
+            });
+
+            return team.id;
+        }
+        catch(e)
+        {
+            // console.log(e, external_id);
+            return null;
+        }
+    }
+
+
+    public async externalToInternalNFLGame(external_id: number)
+    {
+        try {
+            const game = await this.client.nFLGame.findFirstOrThrow({
+                where: {
+                    external_id: external_id,
+                },
+            });
+
+            return game.id;
+        }
+        catch(e)
+        {
+            // console.log(e, external_id);
+            return null;
+        }
+    }
+
 
 
 

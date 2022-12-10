@@ -128,16 +128,15 @@ model UserToTeam {
 }
 
 model Team {
-  id               Int               @id @default(autoincrement())
+  id               Int          @id @default(autoincrement())
   name             String
-  league           League            @relation(fields: [league_id], references: [id])
+  league           League       @relation(fields: [league_id], references: [id])
   league_id        Int
-  settings         TeamSettings      @relation(fields: [team_settings_id], references: [id])
-  team_settings_id Int               @unique
+  settings         TeamSettings @relation(fields: [team_settings_id], references: [id])
+  team_settings_id Int          @unique
   draft_order      DraftOrder[]
   rosters          Roster[]
   managers         UserToTeam[]
-  PlayerGameStats  PlayerGameStats[]
 }
 
 model TeamSettings {
@@ -180,15 +179,16 @@ model Timeframe {
 }
 
 model NFLTeam {
-  id              Int       @id @default(autoincrement())
-  external_id     Int       @unique
+  id              Int               @id @default(autoincrement())
+  external_id     Int               @unique
   key             String
   city            String
   name            String
   season          Int
   current_players Player[]
-  home_games      NFLGame[] @relation("home_team")
-  away_games      NFLGame[] @relation("away_team")
+  home_games      NFLGame[]         @relation("home_team")
+  away_games      NFLGame[]         @relation("away_team")
+  PlayerGameStats PlayerGameStats[]
 }
 
 model Player {
@@ -239,7 +239,7 @@ model PlayerGameStats {
   two_point_conversion_passes     Int
   two_point_conversion_receptions Int
   two_point_conversion_runs       Int
-  team                            Team    @relation(fields: [team_id], references: [id])
+  team                            NFLTeam @relation(fields: [team_id], references: [id])
   team_id                         Int
   player                          Player  @relation(fields: [player_id], references: [id])
   player_id                       Int

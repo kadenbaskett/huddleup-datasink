@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client';
+import { crossOriginResourcePolicy } from 'helmet';
 
 
 /*
@@ -22,11 +23,11 @@ class Seed {
 
   async clearLeagueStuff()
   {
-    await this.client.user.deleteMany();
-    await this.client.league.deleteMany();
-    await this.client.team.deleteMany();
-    await this.client.roster.deleteMany();
     await this.client.rosterPlayer.deleteMany();
+    await this.client.roster.deleteMany();
+    await this.client.team.deleteMany();
+    await this.client.league.deleteMany();
+    await this.client.user.deleteMany();
   }
 
   async simulateLeague(name)
@@ -41,19 +42,28 @@ class Seed {
     const league = await this.createLeague(name, commish.id);
     const teams = await this.createTeams(league, teamNames);
 
+    console.log(teams);
+
     for(let week = 1; week <= weeks; week++)
     {
-      const playerIdsUsed = [];
+      console.log('WEEK ' + week);
+
+      let playerIdsUsed = [];
+      let weekRosters = [];
 
       for(const team of teams)
       {
         const roster = await this.buildRandomRoster(week, team.id, season, playerIdsUsed);
         if(roster.players)
         {
-          const rosterPlayerIds = roster.players.map(p => p.id);
-          playerIdsUsed.push(rosterPlayerIds);
+          const rosterPlayerIds = roster.players.map(p => p.external_id);
+          playerIdsUsed = playerIdsUsed.concat(rosterPlayerIds);
         }
+
+        weekRosters = weekRosters.concat(roster);
       }
+
+      console.log(JSON.stringify(weekRosters, null, 2));
     }
   }
 
@@ -65,7 +75,7 @@ class Seed {
    for(const name of userNames)
    {
       const u = {
-        userNames: name,
+        username: name,
         email: `${name}@gmail.com`,
       };
       users.push(u);
@@ -75,12 +85,8 @@ class Seed {
 
     for(const user of users)
     {
-        const resp = await this.client.user.upsert({
-            where: { 
-              id: user.id,
-            },
-            update: user,
-            create: user,
+        const resp = await this.client.user.create({
+            data: user,
         }); 
         createdUsers.push(resp);
     }
@@ -117,7 +123,6 @@ class Seed {
           league_id: league.id,
           team_settings_id: ts.id,
       };
-      console.log(team);
 
       const resp = await this.client.team.create({
         data: team,
@@ -130,11 +135,11 @@ class Seed {
   }
 
 
-  async buildRandomRoster(week, teamId, season, playerIdsUsed)
+  async buildRandomRoster(week, team_id, season, playerIdsUsed)
   {
     const r = {
         week,
-        teamId,
+        team_id,
         season,
     };
 
@@ -164,7 +169,6 @@ class Seed {
 
       if(playerIdsUsed.includes(rp.external_id))
       {
-        console.log('skip');
         // Skip the player if someone owns them already
         continue;
       }
