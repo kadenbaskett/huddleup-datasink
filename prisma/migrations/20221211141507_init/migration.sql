@@ -161,6 +161,7 @@ CREATE TABLE `Roster` (
 CREATE TABLE `RosterPlayer` (
     `id` INTEGER NOT NULL AUTO_INCREMENT,
     `external_id` INTEGER NOT NULL,
+    `player_id` INTEGER NULL,
     `position` VARCHAR(191) NOT NULL,
     `roster_id` INTEGER NULL,
 
@@ -301,6 +302,9 @@ ALTER TABLE `Team` ADD CONSTRAINT `Team_team_settings_id_fkey` FOREIGN KEY (`tea
 
 -- AddForeignKey
 ALTER TABLE `Roster` ADD CONSTRAINT `Roster_team_id_fkey` FOREIGN KEY (`team_id`) REFERENCES `Team`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `RosterPlayer` ADD CONSTRAINT `RosterPlayer_player_id_fkey` FOREIGN KEY (`player_id`) REFERENCES `Player`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE `RosterPlayer` ADD CONSTRAINT `RosterPlayer_roster_id_fkey` FOREIGN KEY (`roster_id`) REFERENCES `Roster`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;

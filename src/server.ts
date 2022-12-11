@@ -4,12 +4,17 @@ import Seed from './seed';
 const init = false; // Do we need to fill the DB with NFL stats? (it takes a few minutes to do so)
 const dev = true;
 const app = new App();
+const onlyClearDB = false;
 
 if(dev)
 {
     const seed = new Seed();
 
-    if(init)
+    if(onlyClearDB)
+    {
+        seed.clearLeagueStuff();
+    }
+    else if(init)
     {
         app.initialUpdate().then(() => seed.seedDB());
     }

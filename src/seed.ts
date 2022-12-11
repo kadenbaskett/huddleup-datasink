@@ -22,24 +22,29 @@ class Seed {
     const numLeagues = 3;
     const numUsers = 12;
     const users = await this.createUsers(numUsers);
-    const commish = users[Math.floor(Math.random() * users.length)]; 
     const leagueNames = this.generateLeagueNames(numLeagues);
 
     for(let i = 0; i < leagueNames.length; i++)
     {
+      const commish = users[Math.floor(Math.random() * users.length)]; 
       await this.simulateLeague(users, leagueNames[i], commish);
     }
-
   }
 
   async clearLeagueStuff()
   {
-    // await this.client.league.deleteMany();
-    // await this.client.team.deleteMany();
-    // await this.client.teamSettings.deleteMany();
-    // await this.client.rosterPlayer.deleteMany();
-    // await this.client.roster.deleteMany();
-    // await this.client.user.deleteMany();
+    // The order that the tables are cleared in is important
+    // We can't clear a table that is referenced by another table using a foreign key without first clearing
+    // the table that references it
+    await this.client.rosterPlayer.deleteMany();
+    await this.client.roster.deleteMany();
+    await this.client.userToTeam.deleteMany();
+    await this.client.team.deleteMany();
+    await this.client.teamSettings.deleteMany();
+    await this.client.league.deleteMany();
+    await this.client.user.deleteMany();
+
+    console.log('Cleared db successfully of old league data');
   }
 
   async simulateLeague(users, name, commish)
@@ -184,6 +189,7 @@ class Seed {
         external_id: p.external_id,
         position: p.position,
         roster_id: roster.id,
+        player_id: p.id,
       };
 
       if(playerIdsUsed.includes(rp.external_id))
