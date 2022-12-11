@@ -179,7 +179,9 @@ class Seed {
       'FLEX': 1,
       'TOTAL': 15,
     };
-    
+
+    const allowedPositions = [ 'RB', 'WR', 'TE', 'QB', 'K' ];
+    const flexPositions = [ 'RB', 'WR', 'TE' ];
     const players = await this.client.player.findMany();
     this.shuffleArray(players);
 
@@ -192,7 +194,7 @@ class Seed {
         player_id: p.id,
       };
 
-      if(playerIdsUsed.includes(rp.external_id))
+      if(playerIdsUsed.includes(rp.external_id) || !allowedPositions.includes(p.position))
       {
         // Skip the player if someone owns them already
         continue;
@@ -205,7 +207,7 @@ class Seed {
 
         constraints[rp.position]--;
       }
-      else if (constraints['FLEX'] && p.position in [ 'RB', 'WR', 'TE' ])
+      else if (constraints['FLEX'] && flexPositions.includes(p.position))
       {
         rp.position = 'FLEX';
 
@@ -215,7 +217,7 @@ class Seed {
 
         constraints[rp.position]--;
       }
-      else if(constraints['TOTAL'])
+      else if(constraints['TOTAL'] && allowedPositions.includes(p.position))
       {
         rp.position = 'BE';
 
@@ -225,7 +227,7 @@ class Seed {
 
         constraints[rp.position]--;
       }
-      
+        
       constraints['TOTAL']--;
 
       if(!constraints['TOTAL'])
