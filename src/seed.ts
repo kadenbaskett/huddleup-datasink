@@ -85,7 +85,9 @@ class Seed {
   async createFirebaseUsers(numUsers)
   {
 
-    const userNames = await this.createUsernames(numUsers);
+    // const userNames = await this.createUsernames(numUsers);
+
+    const userNames = [ 'agilellama0', 'smallchimpanzee1', 'cleverwoodpecker2' ];
     
     const users = [];
 
@@ -96,8 +98,7 @@ class Seed {
           email: `${name}@gmail.com`,
         };
 
-        const resp = await createAccount(u.username, u.email, 'password');
-        console.log(resp);
+        // const resp = await createAccount(u.username, u.email, 'password');
         users.push(u);
     }
 
@@ -193,7 +194,7 @@ class Seed {
       'TOTAL': 15,
     };
 
-    const allowedPositions = [ 'RB', 'WR', 'TE', 'QB', 'K' ];
+    const allowedPositions = [ 'RB', 'WR', 'TE', 'QB' ];
     const flexPositions = [ 'RB', 'WR', 'TE' ];
     const players = await this.client.player.findMany();
     this.shuffleArray(players);
