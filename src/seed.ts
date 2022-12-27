@@ -1,5 +1,6 @@
+/* eslint-disable @typescript-eslint/no-var-requires */
 import { PrismaClient } from '@prisma/client';
-import { crossOriginResourcePolicy } from 'helmet';
+import { createAccount } from '../firebase/firebase';
 
 
 /*
@@ -19,15 +20,17 @@ class Seed {
   {
     await this.clearLeagueStuff();
 
-    const numLeagues = 3;
-    const numUsers = 12;
-    const users = await this.createUsers(numUsers);
+    const numLeagues = 1;
+    const numTeams = 2;
+    const usersPerTeam = 2;
+    const numUsers = usersPerTeam * numTeams;
+    const users = await this.createFirebaseUsers(numUsers);
     const leagueNames = this.generateLeagueNames(numLeagues);
 
     for(let i = 0; i < leagueNames.length; i++)
     {
       const commish = users[Math.floor(Math.random() * users.length)]; 
-      await this.simulateLeague(users, leagueNames[i], commish);
+      await this.simulateLeague(users, leagueNames[i], commish, numTeams);
     }
   }
 
@@ -47,18 +50,14 @@ class Seed {
     console.log('Cleared db successfully of old league data');
   }
 
-  async simulateLeague(users, name, commish)
+  async simulateLeague(users, name, commish, numTeams)
   {
-    const numTeams = 12;
     const weeks = 18;
     const season = 2022;
     const teamNames = this.generateTeamNames(numTeams);
-    console.log(commish);
 
     const league = await this.createLeague(name, commish.id);
     const teams = await this.createTeams(league, users, teamNames);
-
-    console.log(teams);
 
     for(let week = 1; week <= weeks; week++)
     {
@@ -79,25 +78,30 @@ class Seed {
         weekRosters = weekRosters.concat(roster);
       }
 
-      console.log(JSON.stringify(weekRosters, null, 2));
+      // console.log(JSON.stringify(weekRosters, null, 2));
     }
   }
 
-  async createUsers(numUsers)
+  async createFirebaseUsers(numUsers)
   {
-   const userNames = await this.createUsernames(numUsers);
-   const users = [];
 
-   for(const name of userNames)
-   {
-      const u = {
-        username: name,
-        email: `${name}@gmail.com`,
-      };
-      users.push(u);
-   }
+    const userNames = await this.createUsernames(numUsers);
+    
+    const users = [];
 
-   const createdUsers = [];
+    for(const name of userNames)
+    {
+        const u = {
+          username: name,
+          email: `${name}@gmail.com`,
+        };
+
+        const resp = await createAccount(u.username, u.email, 'password');
+        console.log(resp);
+        users.push(u);
+    }
+
+    const createdUsers = [];
 
     for(const user of users)
     {
@@ -144,16 +148,25 @@ class Seed {
         data: team,
       }); 
 
-      await this.client.userToTeam.create({
-        data: {
-          team_id: resp.id,
-          user_id: users[i].id,
-          is_captain: true,
-        },
-      });
-
       teams.push(resp);
     }
+
+    let userNumber = 0;
+    teams.map(async (team) => {
+
+      for(let i = 0; i < 3; i++)
+      {
+        await this.client.userToTeam.create({
+          data: {
+            team_id: team.id,
+            user_id: users[i + userNumber].id,
+            is_captain: i == 0,
+          },
+        });
+      }
+      userNumber += 3;
+    });
+
 
     return teams;
   }
@@ -273,12 +286,15 @@ class Seed {
 
   createUsernames(num)
   {
-    const base = 'user';
     const users = [];
 
     for(let i = 0; i < num; i++)
     {
-      users.push(`${base}${i}`);
+      const randomAnimalName = require('random-animal-name');
+      let animalName = randomAnimalName();
+      animalName = animalName.replaceAll(' ', '').toLowerCase().replaceAll('-','');
+
+      users.push(`${animalName}${i}`);
     }
 
     return users;
@@ -301,9 +317,5 @@ class Seed {
 
 
 }
-
-
-
-
-
 export default Seed;
+

@@ -13,7 +13,7 @@ class StatsService {
 
   constructor()
   {
-    this.key = '92b33b3c766b4421923b11b00b62adc5';
+    this.key = process.env.API_KEY;
     this.headers = { 'Ocp-Apim-Subscription-Key': this.key };
     this.options = { headers: this.headers };
     this.baseScoresURL = 'https://api.sportsdata.io/v3/nfl/scores/json/';
