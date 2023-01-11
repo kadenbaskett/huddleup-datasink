@@ -125,7 +125,7 @@ class App {
       {
         const data = Object(resp.data);
 
-        const players: Player[] = data.filter(p => p.GlobalTeamID > 0).map(p => {
+        const players: Player[] = data.filter(p => p.GlobalTeamID > 0 && p.Position !== 'K').map(p => {
             return {
               external_id: p.PlayerID,
               first_name: p.FirstName,
