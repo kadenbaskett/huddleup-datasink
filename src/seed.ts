@@ -22,7 +22,7 @@ class Seed {
     await this.clearLeagueStuff();
 
     const numLeagues = 1;
-    const numTeams = 2;
+    const numTeams = 6;
     const usersPerTeam = 2;
     const numUsers = usersPerTeam * numTeams;
     const users = await this.createFirebaseUsers(numUsers);
@@ -43,6 +43,7 @@ class Seed {
     await this.client.rosterPlayer.deleteMany();
     await this.client.roster.deleteMany();
     await this.client.userToTeam.deleteMany();
+    await this.client.matchup.deleteMany();
     await this.client.team.deleteMany();
     await this.client.teamSettings.deleteMany();
     await this.client.league.deleteMany();

@@ -144,6 +144,7 @@ model Team {
 
 model Matchup {
   id           Int    @id @default(autoincrement())
+  week          Int
   league       League @relation(fields: [league_id], references: [id])
   league_id    Int
   home_team    Team   @relation("home_team", fields: [home_team_id], references: [id])
