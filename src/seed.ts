@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
 import { PrismaClient } from '@prisma/client';
 import { createAccount } from '../firebase/firebase';
+import { calculateSeasonLength, createMatchups } from './services/helpers.service';
 
 
 /*
@@ -79,6 +80,19 @@ class Seed {
       }
 
       // console.log(JSON.stringify(weekRosters, null, 2));
+    }
+
+    const matchups = createMatchups(teams, calculateSeasonLength());
+
+    for(const matchup of matchups)
+    {
+      const resp = await this.client.matchup.create({
+        data: {
+          ...matchup,
+          league_id: league.id,
+        },
+      }); 
+      console.log(resp);
     }
   }
 
