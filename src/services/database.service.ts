@@ -296,7 +296,7 @@ class DatabaseService {
 
             if(!current)
             {
-                const prev = await this.client.timeframe.findFirst({
+                return await this.client.timeframe.findFirstOrThrow({
                     where: {
                         type: 1,
                         has_ended: true,
@@ -312,8 +312,6 @@ class DatabaseService {
                     ],
                     take: 1,
                 });
-
-                return prev;
             }
             else
             {
