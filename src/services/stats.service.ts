@@ -37,8 +37,8 @@ class StatsService {
 
   // Endpoints we hit on a recurring basis to keep our database in sync
 
-  public async getTimeframe(): Promise<respObj> {
-    const url = this.baseScoresURL + 'Timeframes/current';
+  public async getTimeframes(): Promise<respObj> {
+    const url = this.baseScoresURL + 'Timeframes/all';
     return await this.getRequest(url);
   }
   

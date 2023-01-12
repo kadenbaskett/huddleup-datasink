@@ -14,6 +14,7 @@ const config = {
   players: hoursToMilliseconds(1),
   schedule: hoursToMilliseconds(1),
   gamesInProgress: 60000, // Update once a minute
+  allowedPositions: [ 'QB', 'RB', 'WR', 'TE' ],
 };
 
 
@@ -39,8 +40,8 @@ class App {
 
   async printDatabase()
   {
-      const timeframe = await this.db.getTimeframe();
-      console.log('Timeframe: ', timeframe[0]);
+      const timeframes = await this.db.getTimeframe();
+      console.log('Timeframe: ', timeframes);
       const teams = await this.db.getNFLTeams();
       console.log('Teams: ', teams[0]);
       const schedule = await this.db.getAllNFLGames();
@@ -48,8 +49,6 @@ class App {
       const players = await this.db.getPlayers();
       console.log('Players: ', players[0]);
       const stats = await this.db.getAllPlayerStats();
-      const cmc = stats.filter((gamelog) => gamelog.external_player_id === 18877);
-      console.log('Stats: ', cmc ? cmc[0] : 'No CMC stats');
   }
 
   async clearDB()
@@ -81,12 +80,12 @@ class App {
 
   async updateTimeframes()
   {
-    const resp = await this.stats.getTimeframe();
+    const resp = await this.stats.getTimeframes();
 
     if(resp.data)
     {
-      const timeframe = Object(resp.data[0]);
-      await this.db.setTimeframe(Number(timeframe.Season), Number(timeframe.Week));
+      const timeframes = Object(resp.data);
+      await this.db.setTimeframes(timeframes);
     }
   }
 
@@ -96,7 +95,7 @@ class App {
 
     if(timeframe)
     {
-        const resp: respObj = await this.stats.getNFLTeams(timeframe.current_season);
+        const resp: respObj = await this.stats.getNFLTeams(timeframe.season);
 
         if(resp.data)
         {
@@ -108,7 +107,7 @@ class App {
                 key: team.Key,
                 city: team.City,
                 name: team.Name,
-                season: timeframe.current_season,
+                season: timeframe.season,
               };
             });
           
@@ -125,7 +124,7 @@ class App {
       {
         const data = Object(resp.data);
 
-        const players: Player[] = data.filter(p => p.GlobalTeamID > 0 && p.Position !== 'K').map(p => {
+        const players: Player[] = data.filter(p => p.GlobalTeamID > 0 && config.allowedPositions.includes(p.Position)).map(p => {
             return {
               external_id: p.PlayerID,
               first_name: p.FirstName,
@@ -148,7 +147,7 @@ class App {
 
     if(timeframe)
     {
-        const resp: respObj = await this.stats.getSchedules(timeframe.current_season);
+        const resp: respObj = await this.stats.getSchedules(timeframe.season);
 
         if(resp.data)
         {
@@ -209,7 +208,9 @@ class App {
                       completions: Math.floor(pg.PassingCompletions),
                       pass_td: Math.floor(pg.PassingTouchdowns),
                       interceptions_thrown: Math.floor(pg.PassingInterceptions),
+                      fumbles: Math.floor(pg.Fumbles),
                       receptions: Math.floor(pg.Receptions),
+                      rec_td: Math.floor(pg.ReceivingTouchdowns),
                       rec_yards: Math.floor(pg.ReceivingYards),
                       targets: Math.floor(pg.ReceivingTargets),
                       rush_attempts: Math.floor(pg.RushingAttempts),
@@ -282,9 +283,5 @@ class App {
       }
   }
 }
-
-
-
-
 
 export default App;
