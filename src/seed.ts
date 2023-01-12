@@ -83,17 +83,17 @@ class Seed {
       // console.log(JSON.stringify(weekRosters, null, 2));
     }
 
-    const matchups = createMatchups(teams, calculateSeasonLength());
+    const regSeasonLen = calculateSeasonLength(4);
+    const matchups = createMatchups(teams, regSeasonLen);
 
     for(const matchup of matchups)
     {
-      const resp = await this.client.matchup.create({
+      await this.client.matchup.create({
         data: {
           ...matchup,
           league_id: league.id,
         },
       }); 
-      console.log(resp);
     }
   }
 
@@ -175,7 +175,7 @@ class Seed {
         await this.client.userToTeam.create({
           data: {
             team_id: team.id,
-            user_id: users[i + userNumber].id,
+            user_id: users[(i + userNumber) % users.length].id,
             is_captain: i == 0,
           },
         });
