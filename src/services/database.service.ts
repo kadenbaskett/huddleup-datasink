@@ -18,25 +18,33 @@ class DatabaseService {
 
     // ***************** SETTERS ******************
 
-    public async setTimeframe(season: number, week: number): Promise<Timeframe>
+    public async setTimeframes(timeframes): Promise<void>
     {
         try 
         {
-            const timeframe: Timeframe = await this.client.timeframe.upsert({
-                where: { 
-                    current_season_current_week: { 
-                        current_season: season,
-                        current_week: week,
+            for(const t of timeframes)
+            {
+                await this.client.timeframe.upsert({
+                    where: { 
+                        season_week_type: {
+                            season: Number(t.Season),
+                            week: Number(t.Week),
+                            type: Number(t.SeasonType),
+                        },
                     },
-                 },
-                update: {}, // Don't update if the current season and week match
-                create: {
-                    current_season: season,
-                    current_week: week,
-                },
-            });
-
-            return timeframe;
+                    update: {
+                        has_ended: t.HasEnded,
+                        has_started: t.HasStarted,
+                    },
+                    create: {
+                        season: Number(t.Season),
+                        week: Number(t.Week),
+                        type: Number(t.SeasonType),
+                        has_ended: t.HasEnded,
+                        has_started: t.HasStarted,
+                    },
+                });
+            }
         }
         catch(e) {
            console.log(e);
@@ -237,7 +245,9 @@ class DatabaseService {
                     completions: gameStats.completions,
                     pass_td: gameStats.pass_td,
                     interceptions_thrown: gameStats.interceptions_thrown,
+                    fumbles: gameStats.fumbles,
                     receptions: gameStats.receptions,
+                    rec_td: gameStats.rec_td,
                     rec_yards: gameStats.rec_yards,
                     targets: gameStats.targets,
                     rush_attempts: gameStats.rush_attempts,
@@ -276,7 +286,37 @@ class DatabaseService {
     public async getTimeframe(): Promise<Timeframe>
     {
         try {
-            return await this.client.timeframe.findFirst();
+            const current = await this.client.timeframe.findFirst({
+                where: {
+                    type: 1,
+                    has_ended: false,
+                    has_started: true,
+                },
+            });
+
+            if(!current)
+            {
+                return await this.client.timeframe.findFirstOrThrow({
+                    where: {
+                        type: 1,
+                        has_ended: true,
+                        has_started: true,
+                    },
+                    orderBy: [
+                        {
+                            week: 'desc',
+                        },
+                        {
+                            season: 'desc',
+                        },
+                    ],
+                    take: 1,
+                });
+            }
+            else
+            {
+                return current;
+            }
         }
         catch(e)
         {

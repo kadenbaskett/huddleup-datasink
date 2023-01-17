@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
 import { PrismaClient } from '@prisma/client';
 import { createAccount } from '../firebase/firebase';
+import { calculateSeasonLength, createMatchups } from './services/helpers.service';
 
 
 /*
@@ -21,7 +22,7 @@ class Seed {
     await this.clearLeagueStuff();
 
     const numLeagues = 1;
-    const numTeams = 2;
+    const numTeams = 6;
     const usersPerTeam = 2;
     const numUsers = usersPerTeam * numTeams;
     const users = await this.createFirebaseUsers(numUsers);
@@ -42,6 +43,7 @@ class Seed {
     await this.client.rosterPlayer.deleteMany();
     await this.client.roster.deleteMany();
     await this.client.userToTeam.deleteMany();
+    await this.client.matchup.deleteMany();
     await this.client.team.deleteMany();
     await this.client.teamSettings.deleteMany();
     await this.client.league.deleteMany();
@@ -79,6 +81,19 @@ class Seed {
       }
 
       // console.log(JSON.stringify(weekRosters, null, 2));
+    }
+
+    const regSeasonLen = calculateSeasonLength(4);
+    const matchups = createMatchups(teams, regSeasonLen);
+
+    for(const matchup of matchups)
+    {
+      await this.client.matchup.create({
+        data: {
+          ...matchup,
+          league_id: league.id,
+        },
+      }); 
     }
   }
 
@@ -160,7 +175,7 @@ class Seed {
         await this.client.userToTeam.create({
           data: {
             team_id: team.id,
-            user_id: users[i + userNumber].id,
+            user_id: users[(i + userNumber) % users.length].id,
             is_captain: i == 0,
           },
         });
