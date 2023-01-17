@@ -21,9 +21,9 @@ class Seed {
   {
     await this.clearLeagueStuff();
 
-    const numLeagues = 1;
-    const numTeams = 6;
-    const usersPerTeam = 2;
+    const numLeagues = 4;
+    const numTeams = 10;
+    const usersPerTeam = 3;
     const numUsers = usersPerTeam * numTeams;
     const users = await this.createFirebaseUsers(numUsers);
     const leagueNames = this.generateLeagueNames(numLeagues);
@@ -99,11 +99,24 @@ class Seed {
 
   async createFirebaseUsers(numUsers)
   {
-
     // const userNames = await this.createUsernames(numUsers);
 
-    const userNames = [ 'agilellama0', 'smallchimpanzee1', 'cleverwoodpecker2' ];
-    
+    const userNames = [ 'talloryx0', 'domesticrabbit1',
+    'lovablequail2', 'slimybadger3',
+    'scalygoat4', 'wildcassowary5',
+    'fierceseahorse6', 'herbivorouscobra7',
+    'domesticsandpiper8', 'hairywolverine9',
+    'smallgoshawk10', 'nosyrook11',
+    'loudhedgehog12', 'shortmarten13',
+    'cleverguanaco14', 'curiousbear15',
+    'poisonousibex16', 'feistytiger17',
+    'carnivorouseel18', 'colorfulcassowary19',
+    'malicioussardine20', 'scalyhornet21',
+    'viciousspider22', 'tenaciouseland23',
+    'sassybear24', 'smallmole25',
+    'warmvulture26', 'maternalhorse27',
+    'heavymole28', 'tinymoose29' ];
+
     const users = [];
 
     for(const name of userNames)
@@ -113,7 +126,7 @@ class Seed {
           email: `${name}@gmail.com`,
         };
 
-        // const resp = await createAccount(u.username, u.email, 'password');
+        // await createAccount(u.username, u.email, 'password');
         users.push(u);
     }
 
@@ -167,22 +180,24 @@ class Seed {
       teams.push(resp);
     }
 
-    let userNumber = 0;
-    teams.map(async (team) => {
+    let userNum = 0;
+    for(let teamNum = 0; teamNum < teams.length; teamNum++)
+    {
+      const team = teams[teamNum];
 
-      for(let i = 0; i < 3; i++)
+      for(let i = userNum; i < userNum + 3; i++)
       {
         await this.client.userToTeam.create({
           data: {
             team_id: team.id,
-            user_id: users[(i + userNumber) % users.length].id,
+            user_id: users[i].id,
             is_captain: i == 0,
           },
         });
       }
-      userNumber += 3;
-    });
 
+      userNum += 3;
+    }
 
     return teams;
   }

@@ -40,10 +40,7 @@ const login = async (email, password, rememberMe) => {
 
 const createAccount = async (username, email, password) => {
   try {
-    await createUserWithEmailAndPassword(auth, email, password);
-
-    // const user = res.user;
-    // console.log(user); // here to cancel error on user for not being used(linter)
+    const res = await createUserWithEmailAndPassword(auth, email, password);
 
     return 'success';
   } catch (err) {
