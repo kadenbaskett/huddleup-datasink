@@ -21,6 +21,9 @@ class Seed {
   {
     await this.clearLeagueStuff();
 
+    const season = 2022;
+    const numPlayoffTeams = 4;
+    const currentWeek = 6;
     const numLeagues = 4;
     const numTeams = 10;
     const usersPerTeam = 3;
@@ -31,7 +34,7 @@ class Seed {
     for(let i = 0; i < leagueNames.length; i++)
     {
       const commish = users[Math.floor(Math.random() * users.length)]; 
-      await this.simulateLeague(users, leagueNames[i], commish, numTeams);
+      await this.simulateLeague(users, leagueNames[i], commish, numTeams, season, currentWeek, numPlayoffTeams);
     }
   }
 
@@ -52,18 +55,15 @@ class Seed {
     console.log('Cleared db successfully of old league data');
   }
 
-  async simulateLeague(users, name, commish, numTeams)
+  async simulateLeague(users, name, commish, numTeams, season, currentWeek, numPlayoffTeams)
   {
-    const season = 2022;
     const teamNames = this.generateTeamNames(numTeams);
 
     const league = await this.createLeague(name, commish.id);
     const teams = await this.createTeams(league, users, teamNames);
 
-    const simulateCurrentWeek = 6;
-    this.buildRandomRostersSamePlayersEveryWeek(simulateCurrentWeek, season, teams);
+    this.buildRandomRostersSamePlayersEveryWeek(currentWeek, season, teams);
 
-    const numPlayoffTeams = 4;
     const regSeasonLen = calculateSeasonLength(numPlayoffTeams);
     const matchups = createMatchups(teams, regSeasonLen);
 
