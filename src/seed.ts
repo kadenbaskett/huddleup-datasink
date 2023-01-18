@@ -61,6 +61,50 @@ class Seed {
     const league = await this.createLeague(name, commish.id);
     const teams = await this.createTeams(league, users, teamNames);
 
+    this.buildRandomRostersSamePlayersEveryWeek(weeks, season, teams);
+
+    const regSeasonLen = calculateSeasonLength(4);
+    const matchups = createMatchups(teams, regSeasonLen);
+
+    for(const matchup of matchups)
+    {
+      await this.client.matchup.create({
+        data: {
+          ...matchup,
+          league_id: league.id,
+        },
+      }); 
+    }
+  }
+  
+
+  async buildRandomRostersSamePlayersEveryWeek(weeks, season, teams)
+  {
+    let playerIdsUsed = [];
+    const rosters = [];
+    for(const team of teams)
+    {
+      const roster = await this.buildRandomRoster(1, team.id, season, playerIdsUsed);
+      if(roster.players)
+      {
+        const rosterPlayerIds = roster.players.map(p => p.external_id);
+        playerIdsUsed = playerIdsUsed.concat(rosterPlayerIds);
+      }
+
+      rosters.push(roster);
+    }
+
+    for(let week = 2; week <= weeks; week++)
+    {
+      for(const r of rosters)
+      {
+        this.copyRoster(week, r); 
+      }
+    }
+  }
+
+  async buildRandomRosterNewPlayersEveryWeek(weeks, season, teams)
+  {
     for(let week = 1; week <= weeks; week++)
     {
       console.log('WEEK ' + week);
@@ -81,19 +125,6 @@ class Seed {
       }
 
       // console.log(JSON.stringify(weekRosters, null, 2));
-    }
-
-    const regSeasonLen = calculateSeasonLength(4);
-    const matchups = createMatchups(teams, regSeasonLen);
-
-    for(const matchup of matchups)
-    {
-      await this.client.matchup.create({
-        data: {
-          ...matchup,
-          league_id: league.id,
-        },
-      }); 
     }
   }
 
@@ -201,6 +232,48 @@ class Seed {
 
     return teams;
   }
+
+  async copyRoster(week, oldRoster)
+  {
+    const r = {
+      week: week,
+      team_id: oldRoster.team_id,
+      season: oldRoster.season,
+    };
+
+    // Create roster
+    const newRoster = await this.client.roster.create({
+      data: r,
+    }); 
+
+    // Create roster player
+    for(const oldPlayer of oldRoster.players)
+    {
+      const rp = {
+        external_id: oldPlayer.external_id,
+        position: oldPlayer.position,
+        roster_id: newRoster.id,
+        player_id: oldPlayer.player_id,
+      };
+
+      await this.client.rosterPlayer.create({
+        data: rp,
+      });
+    }
+
+    
+    const created = this.client.roster.findFirstOrThrow({
+      where: {
+        id: newRoster.id,
+      },
+      include: {
+        players: true,
+      },
+    });
+
+    return created;
+  }
+
 
 
   async buildRandomRoster(week, team_id, season, playerIdsUsed)
