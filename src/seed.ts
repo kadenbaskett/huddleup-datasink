@@ -43,6 +43,8 @@ class Seed {
     // The order that the tables are cleared in is important
     // We can't clear a table that is referenced by another table using a foreign key without first clearing
     // the table that references it
+    await this.client.transactionPlayer.deleteMany();
+    await this.client.transaction.deleteMany();
     await this.client.rosterPlayer.deleteMany();
     await this.client.roster.deleteMany();
     await this.client.userToTeam.deleteMany();
@@ -62,7 +64,9 @@ class Seed {
     const league = await this.createLeague(name, commish.id);
     const teams = await this.createTeams(league, users, teamNames);
 
-    this.buildRandomRostersSamePlayersEveryWeek(currentWeek, season, teams);
+    await this.buildRandomRostersSamePlayersEveryWeek(currentWeek, season, teams);
+
+    await this.simulateTransactions(league, currentWeek);
 
     const regSeasonLen = calculateSeasonLength(numPlayoffTeams);
     const matchups = createMatchups(teams, regSeasonLen);
@@ -77,8 +81,182 @@ class Seed {
       }); 
     }
   }
-  
 
+  async simulateTransactions(league, currentWeek)
+  {
+    const trades = [
+      {
+        pos: 'QB',
+        week: 2,
+        status: 'Complete',
+      },
+      {
+        pos: 'TE',
+        week: 3,
+        status: 'Complete',
+      },
+      {
+        pos: 'RB',
+        week: 5,
+        status: 'Rejected',
+      },
+      {
+        pos: 'WR',
+        week: 6,
+        status: 'Pending',
+      },
+    ];
+
+    for(const trade of trades)
+    {
+      const rosters = await this.client.roster.findMany({
+        where: {
+          week: trade.week,
+          team: {
+            league_id: league.id,
+          },
+        },
+        include: {
+          players: true,
+        },
+      });
+
+      const teamOneRoster = rosters.at(0);
+      const teamTwoRoster = rosters.at(1);
+
+      await this.simulateTrade(teamOneRoster, teamTwoRoster, currentWeek, trade.pos, trade.week, trade.status);
+    }
+  }
+
+  async simulateTrade(teamOneRoster, teamTwoRoster, currentWeek, pos, weekTradeCreated, tradeStatus)
+  {
+      const rosterPlayerOne = teamOneRoster.players.find((p) => p.position === pos);
+      const rosterPlayerTwo = teamTwoRoster.players.find((p) => p.position === pos);
+
+      if(!rosterPlayerOne)
+      {
+        console.log(teamOneRoster);
+      }
+      else if(!rosterPlayerTwo)
+      {
+        console.log(teamTwoRoster);
+      }
+
+      const creation = new Date();
+      const execution = new Date();
+      const expiration = new Date();
+
+      const diff = currentWeek - weekTradeCreated;
+      const daysAgo = diff * 7;
+
+      creation.setDate(creation.getDate() - daysAgo);
+      execution.setDate(execution.getDate() - daysAgo + 1);
+      expiration.setDate(expiration.getDate() - daysAgo + 3);
+
+      const created = await this.client.transaction.create({
+        data: {
+          type: 'Trade',
+          status: tradeStatus,
+          creation_date: creation,
+          expiration_date: expiration,
+          execution_date: execution,
+          week: weekTradeCreated,
+        },
+      });
+
+      await this.client.transactionPlayer.create({
+        data: {
+          transaction_id: created.id,
+          player_id: rosterPlayerOne.player_id,
+          sending_team_id: teamOneRoster.team_id,
+          receiving_team_id: teamTwoRoster.team_id,
+        },
+      });
+
+      await this.client.transactionPlayer.create({
+        data: {
+          transaction_id: created.id,
+          player_id: rosterPlayerTwo.player_id,
+          sending_team_id: teamTwoRoster.team_id,
+          receiving_team_id: teamOneRoster.team_id,
+        },
+      });
+
+      if(tradeStatus === 'Completed')
+      {
+        await this.updateRostersPostTrade(teamOneRoster, teamTwoRoster, rosterPlayerOne, rosterPlayerTwo);
+      }
+  }
+
+  // Updates all rosters going forward with the new traded players
+  async updateRostersPostTrade(rosterOne, rosterTwo, rosterPlayerOne, rosterPlayerTwo)
+  {
+    const teamOneRosters = await this.client.roster.findMany({
+      where: {
+        team_id: rosterOne.team_id,
+        week: {
+          gte: rosterOne.week,
+        },
+      },
+    }); 
+
+    for(const r of teamOneRosters)
+    {
+      // delete player one from roster one
+      await this.client.rosterPlayer.delete({
+        where: {
+          player_id_roster_id: {
+            roster_id: r.id,
+            player_id: rosterPlayerOne.player_id,
+          },
+        }, 
+      });
+
+      // add player two to roster one
+      await this.client.rosterPlayer.create({
+        data: {
+          external_id: rosterPlayerTwo.external_id,
+          position: rosterPlayerTwo.position,
+          roster_id: r.id,
+          player_id: rosterPlayerTwo.player_id,
+        },
+      });
+    }
+
+
+    const teamTwoRosters = await this.client.roster.findMany({
+      where: {
+        team_id: rosterTwo.team_id,
+        week: {
+          gte: rosterTwo.week,
+        },
+      },
+    }); 
+
+    for(const r of teamTwoRosters)
+    {
+      // delete player one from roster one
+      await this.client.rosterPlayer.delete({
+        where: {
+          player_id_roster_id: {
+            roster_id: r.id,
+            player_id: rosterPlayerTwo.player_id,
+          },
+        }, 
+      });
+
+      // add player two to roster one
+      await this.client.rosterPlayer.create({
+        data: {
+          external_id: rosterPlayerOne.external_id,
+          position: rosterPlayerOne.position,
+          roster_id: r.id,
+          player_id: rosterPlayerOne.player_id,
+        },
+      });
+    }
+  }
+  
   async buildRandomRostersSamePlayersEveryWeek(weeks, season, teams)
   {
     let playerIdsUsed = [];
@@ -86,6 +264,7 @@ class Seed {
     for(const team of teams)
     {
       const roster = await this.buildRandomRoster(1, team.id, season, playerIdsUsed);
+
       if(roster.players)
       {
         const rosterPlayerIds = roster.players.map(p => p.external_id);
@@ -99,7 +278,7 @@ class Seed {
     {
       for(const r of rosters)
       {
-        this.copyRoster(week, r); 
+        await this.copyRoster(week, r); 
       }
     }
   }
@@ -108,8 +287,6 @@ class Seed {
   {
     for(let week = 1; week <= weeks; week++)
     {
-      console.log('WEEK ' + week);
-
       let playerIdsUsed = [];
       let weekRosters = [];
 
@@ -261,7 +438,7 @@ class Seed {
     }
 
     
-    const created = this.client.roster.findFirstOrThrow({
+    const created = await this.client.roster.findFirstOrThrow({
       where: {
         id: newRoster.id,
       },
@@ -272,8 +449,6 @@ class Seed {
 
     return created;
   }
-
-
 
   async buildRandomRoster(week, team_id, season, playerIdsUsed)
   {
@@ -352,7 +527,7 @@ class Seed {
       }
     }
 
-    const created = this.client.roster.findFirstOrThrow({
+    const created = await this.client.roster.findFirstOrThrow({
       where: {
         id: roster.id,
       },
