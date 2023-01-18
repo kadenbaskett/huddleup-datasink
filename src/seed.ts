@@ -54,16 +54,17 @@ class Seed {
 
   async simulateLeague(users, name, commish, numTeams)
   {
-    const weeks = 18;
     const season = 2022;
     const teamNames = this.generateTeamNames(numTeams);
 
     const league = await this.createLeague(name, commish.id);
     const teams = await this.createTeams(league, users, teamNames);
 
-    this.buildRandomRostersSamePlayersEveryWeek(weeks, season, teams);
+    const simulateCurrentWeek = 6;
+    this.buildRandomRostersSamePlayersEveryWeek(simulateCurrentWeek, season, teams);
 
-    const regSeasonLen = calculateSeasonLength(4);
+    const numPlayoffTeams = 4;
+    const regSeasonLen = calculateSeasonLength(numPlayoffTeams);
     const matchups = createMatchups(teams, regSeasonLen);
 
     for(const matchup of matchups)
@@ -123,8 +124,6 @@ class Seed {
 
         weekRosters = weekRosters.concat(roster);
       }
-
-      // console.log(JSON.stringify(weekRosters, null, 2));
     }
   }
 
