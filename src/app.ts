@@ -84,7 +84,23 @@ class App {
 
     if(resp.data)
     {
-      const timeframes = Object(resp.data);
+      let timeframes = Object(resp.data);
+
+      timeframes = timeframes.map((tf) => {
+        if(Number(tf.Season) > 2021 && Number(tf.Week) > 6 && Number(tf.SeasonType) === 1)
+        {
+          tf.HasEnded = false;
+          tf.HasStarted = false;
+        }
+        else if(Number(tf.Season) > 2021 && Number(tf.Week) === 6 && Number(tf.SeasonType) === 1)
+        {
+          tf.HasEnded = false;
+          tf.HasStarted = true;
+        }
+
+        return tf;
+      });
+
       await this.db.setTimeframes(timeframes);
     }
   }
