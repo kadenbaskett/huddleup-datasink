@@ -133,15 +133,6 @@ class Seed {
       const rosterPlayerOne = teamOneRoster.players.find((p) => p.position === pos);
       const rosterPlayerTwo = teamTwoRoster.players.find((p) => p.position === pos);
 
-      if(!rosterPlayerOne)
-      {
-        console.log(teamOneRoster);
-      }
-      else if(!rosterPlayerTwo)
-      {
-        console.log(teamTwoRoster);
-      }
-
       const creation = new Date();
       const execution = new Date();
       const expiration = new Date();
@@ -161,6 +152,8 @@ class Seed {
           expiration_date: expiration,
           execution_date: execution,
           week: weekTradeCreated,
+          proposing_team_id: teamOneRoster.team_id,
+          related_team_id: teamTwoRoster.team_id,
         },
       });
 
@@ -168,8 +161,7 @@ class Seed {
         data: {
           transaction_id: created.id,
           player_id: rosterPlayerOne.player_id,
-          sending_team_id: teamOneRoster.team_id,
-          receiving_team_id: teamTwoRoster.team_id,
+          joins_proposing_team: true,
         },
       });
 
@@ -177,8 +169,7 @@ class Seed {
         data: {
           transaction_id: created.id,
           player_id: rosterPlayerTwo.player_id,
-          sending_team_id: teamTwoRoster.team_id,
-          receiving_team_id: teamOneRoster.team_id,
+          joins_proposing_team: false,
         },
       });
 
@@ -465,7 +456,7 @@ class Seed {
     const constraints = {
       'QB': 1,
       'RB': 2,
-      'WR': 3,
+      'WR': 2,
       'TE': 1,
       'FLEX': 1,
       'TOTAL': 15,
@@ -485,9 +476,11 @@ class Seed {
         player_id: p.id,
       };
 
+      const allPosFilled = constraints['QB'] === 0 && constraints['WR'] === 0 && constraints['RB'] === 0 && constraints['TE'] === 0;
+
       if(playerIdsUsed.includes(rp.external_id) || !allowedPositions.includes(p.position))
       {
-        // Skip the player if someone owns them already
+        // Skip the player if someone owns them already or if they play a non fantasy position
         continue;
       }
       else if(constraints[p.position])
@@ -497,6 +490,7 @@ class Seed {
         });
 
         constraints[rp.position]--;
+        constraints['TOTAL']--;
       }
       else if (constraints['FLEX'] && flexPositions.includes(p.position))
       {
@@ -507,8 +501,10 @@ class Seed {
         });
 
         constraints[rp.position]--;
+        constraints['TOTAL']--;
       }
-      else if(constraints['TOTAL'] && allowedPositions.includes(p.position))
+      // Once all starting positions have been filled, create the bench
+      else if(constraints['TOTAL'] && allPosFilled)
       {
         rp.position = 'BE';
 
@@ -517,9 +513,8 @@ class Seed {
         });
 
         constraints[rp.position]--;
+        constraints['TOTAL']--;
       }
-        
-      constraints['TOTAL']--;
 
       if(!constraints['TOTAL'])
       {
