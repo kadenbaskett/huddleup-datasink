@@ -5,6 +5,7 @@ import {
     PrismaClient, 
     Timeframe,
     PlayerGameStats,
+    News,
 } from '@prisma/client';
 
 class DatabaseService {
@@ -85,6 +86,44 @@ class DatabaseService {
             }
         } 
     }
+
+    public async setNews(news): Promise<News[]> {
+        for (const n of news) {
+          try {
+            await this.client.news.upsert({
+              where: {
+                external_id: n.external_id,
+              },
+              update: {
+                external_id: n.external_id,
+                updated_date: n.updated_date,
+                time_posted: n.time_posted,
+                title: n.title,
+                content: Buffer.from(n.content, 'utf8'),
+                external_player_id: n.external_player_id,
+                external_team_id: n.external_team_id,
+                source: n.source,
+                source_url: n.source_url,
+              },
+              create: {
+                external_id: n.external_id,
+                updated_date: n.updated_date,
+                time_posted: n.time_posted,
+                title: n.title,
+                content: Buffer.from(n.content, 'utf8'),
+                external_player_id: n.external_player_id,
+                external_team_id: n.external_team_id,
+                source: n.source,
+                source_url: n.source_url,
+              },
+            });
+          } catch (e) {
+            console.log(e);
+            console.log(n);
+            return null;
+          }
+        }
+      }
 
 
     public async setPlayers(players): Promise<Player[]>
@@ -282,6 +321,15 @@ class DatabaseService {
             return null;
         }
     }
+
+    public async getNews(): Promise<News[]> {
+        try {
+          return await this.client.news.findMany();
+        } catch (e) {
+          console.log(e);
+          return null;
+        }
+      }
 
     public async getTimeframe(): Promise<Timeframe>
     {
