@@ -1,4 +1,4 @@
-import { NFLGame, NFLTeam, Player, Timeframe } from '@prisma/client';
+import { NFLGame, NFLTeam, Player, Timeframe, News } from '@prisma/client';
 import { respObj } from '@interfaces/respobj.interface';
 import DatabaseService from '@services/database.service';
 import StatsService from '@services/stats.service';
@@ -14,6 +14,7 @@ const config = {
   players: hoursToMilliseconds(1),
   schedule: hoursToMilliseconds(1),
   gamesInProgress: 60000, // Update once a minute
+  news: 180000, // Update every 3 minutes
   allowedPositions: [ 'QB', 'RB', 'WR', 'TE' ],
 };
 
@@ -36,6 +37,7 @@ class App {
     setInterval(this.updatePlayers.bind(this), config.players);
     setInterval(this.updateSchedule.bind(this), config.schedule);
     setInterval(this.updateGameScoresAndPlayerStats.bind(this), config.gamesInProgress);
+    setInterval(this.updateNews.bind(this), config.news);
   }
 
   async printDatabase()
@@ -49,6 +51,8 @@ class App {
       const players = await this.db.getPlayers();
       console.log('Players: ', players[0]);
       const stats = await this.db.getAllPlayerStats();
+      const news = await this.db.getNews();
+      console.log('News: ', news[0]);
   }
 
   async clearDB()
@@ -59,6 +63,7 @@ class App {
     await this.db.client.nFLGame.deleteMany();
     await this.db.client.player.deleteMany();
     await this.db.client.nFLTeam.deleteMany();
+    await this.db.client.news.deleteMany();
   }
 
   async initialUpdate()
@@ -74,6 +79,8 @@ class App {
     await this.updateCompletedGames();
     console.log('Updaing game scores and player stats...');
     await this.updateGameScoresAndPlayerStats();
+    console.log('Updating general news...');
+    await this.updateNews();
 
     await this.printDatabase();
   }
@@ -156,6 +163,29 @@ class App {
       }
   }
 
+  async updateNews() {
+    const resp: respObj = await this.stats.getNews();
+
+    if (resp.data) {
+      const data = Object(resp.data);
+
+      const news: News[] = data.map((n) => {
+        return {
+          external_id: n.NewsID,
+          updated_date: n.Updated,
+          time_posted: n.TimeAgo,
+          title: n.Title,
+          content: n.Content,
+          external_player_id: n.PlayerID,
+          external_team_id: n.TeamID,
+          source: n.OriginalSource,
+          source_url: n.OriginalSourceUrl,
+        };
+      });
+
+      await this.db.setNews(news);
+    }
+  }
 
   async updateSchedule() {
 
