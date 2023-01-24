@@ -58,6 +58,16 @@ class App {
   async clearDB()
   {
     console.log('Clearing the database before initial update');
+    await this.db.client.transactionPlayer.deleteMany();
+    await this.db.client.transaction.deleteMany();
+    await this.db.client.rosterPlayer.deleteMany();
+    await this.db.client.roster.deleteMany();
+    await this.db.client.userToTeam.deleteMany();
+    await this.db.client.matchup.deleteMany();
+    await this.db.client.team.deleteMany();
+    await this.db.client.teamSettings.deleteMany();
+    await this.db.client.league.deleteMany();
+    await this.db.client.user.deleteMany();
     await this.db.client.timeframe.deleteMany();
     await this.db.client.playerGameStats.deleteMany();
     await this.db.client.nFLGame.deleteMany();
