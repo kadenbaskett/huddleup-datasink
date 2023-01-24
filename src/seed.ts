@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
-import { PrismaClient } from '@prisma/client';
+import { DraftSettings, LeagueSettings, PrismaClient, RosterSettings, ScheduleSettings, ScoringSettings, TradeSettings, WaiverSettings } from '@prisma/client';
 import { createAccount } from '../firebase/firebase';
 import { calculateSeasonLength, createMatchups } from './services/helpers.service';
 
@@ -34,7 +34,7 @@ class Seed {
     for(let i = 0; i < leagueNames.length; i++)
     {
       const commish = users[Math.floor(Math.random() * users.length)];
-      await this.simulateLeague(users, leagueNames[i], commish, numTeams, season, currentWeek, numPlayoffTeams);
+      await this.simulateLeague(users, leagueNames[i], commish, numTeams, season, currentWeek, numPlayoffTeams, numUsers);
     }
   }
 
@@ -51,18 +51,26 @@ class Seed {
     await this.client.matchup.deleteMany();
     await this.client.team.deleteMany();
     await this.client.teamSettings.deleteMany();
+    await this.client.leagueSettings.deleteMany();
+    await this.client.draftSettings.deleteMany();
+    await this.client.rosterSettings.deleteMany();
+    await this.client.tradeSettings.deleteMany();
+    await this.client.scoringSettings.deleteMany();
+    await this.client.scheduleSettings.deleteMany();
+    await this.client.waiverSettings.deleteMany();
     await this.client.league.deleteMany();
     await this.client.user.deleteMany();
 
     console.log('Cleared db successfully of old league data');
   }
 
-  async simulateLeague(users, name, commish, numTeams, season, currentWeek, numPlayoffTeams)
+  async simulateLeague(users, name, commish, numTeams, season, currentWeek, numPlayoffTeams, numUsers)
   {
     const teamNames = this.generateTeamNames(numTeams);
     const description = `example description for ${name}`;
 
-    const league = await this.createLeague(name, description, commish.id);
+    const leagueSettings = await this.createLeagueSettings(numTeams, true, 2, numUsers, 'PPR');
+    const league = await this.createLeague(name, description, commish.id, leagueSettings.id);
     const teams = await this.createTeams(league, users, teamNames);
 
     await this.buildRandomRostersSamePlayersEveryWeek(currentWeek, season, teams);
@@ -356,16 +364,83 @@ class Seed {
     return createdUsers;
   }
 
-  async createLeague(name, description, commissioner_id)
+  async createLeagueSettings(numTeams: number, publicJoin: boolean, minPlayers: number, maxPlayers: number, scoring: string)
+  {
+      const waiverSettings: WaiverSettings = await this.client.waiverSettings.create({
+        data: {
+          waiver_period_hours: 24,
+          waiver_order_type: 0,
+        },
+      });
+      const scheduleSettings: ScheduleSettings = await this.client.scheduleSettings.create({
+        data: {
+          start_week: 1,
+          end_week: 14,
+          playoff_start_week: 15,
+          playoff_end_week: 18,
+          num_playoff_teams: 4,
+          weeks_per_playoff_matchup: 1,
+        },
+      });
+      const scoringSettings: ScoringSettings = await this.client.scoringSettings.create({
+        data: {
+          points_per_reception: scoring === 'PPR' ? 1 : 0,
+        },
+      });
+      const tradeSettings: TradeSettings = await this.client.tradeSettings.create({
+        data: {
+          review_period_hours: 24,
+          votes_to_veto_trade: 1,
+        },
+      });
+      const rosterSettings: RosterSettings = await this.client.rosterSettings.create({
+        data: {
+          num_qb: 1,
+          num_rb: 2,
+          num_wr: 2,
+          num_te: 1,
+          num_flex: 1,
+          roster_size_limit: 15,
+        },
+      });
+      const draftDate = new Date();
+      draftDate.setDate(draftDate.getDate() + 10);
+      const draftSettings: DraftSettings = await this.client.draftSettings.create({
+        data: {
+          date: draftDate,
+          seconds_per_pick: 30,
+          order_generation_type: 0,
+        },
+      });
+      const leagueSettings: LeagueSettings = await this.client.leagueSettings.create({
+        data: {
+          num_teams: numTeams,
+          public_join: publicJoin,
+          min_players: minPlayers,
+          max_players: maxPlayers,
+          draft_settings_id: draftSettings.id,
+          roster_settings_id: rosterSettings.id,
+          scoring_settings_id: scoringSettings.id,
+          waiver_settings_id: waiverSettings.id,
+          trade_settings_id: tradeSettings.id,
+          schedule_settings_id: scheduleSettings.id,
+        },
+      });
+
+    return leagueSettings;
+  }
+
+  async createLeague(name, description, commissioner_id, settings_id)
   {
     const league = {
-        name,
-        description,
-        commissioner_id,
-    };
-
+      name,
+      description,
+      commissioner_id,
+      settings_id,
+  };
     const resp = await this.client.league.create({
-      data: league,
+      data:
+        league,
     });
 
     return resp;
