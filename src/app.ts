@@ -1,4 +1,4 @@
-import { NFLGame, Player, Timeframe, News } from '@prisma/client';
+import { NFLGame, Player, Timeframe, News, PlayerProjections } from '@prisma/client';
 import { respObj } from '@interfaces/respobj.interface';
 import DatabaseService from '@services/database.service';
 import StatsService from '@services/stats.service';
@@ -49,6 +49,8 @@ class App {
     console.log('Stats: ', stats[0]);
     const news = await this.db.getNews();
     console.log('News: ', news[0]);
+    const projections = await this.db.getAllPlayerProjections();
+    console.log('Projection: ', projections[0]);
   }
 
   async clearDB() {
@@ -59,6 +61,7 @@ class App {
     await this.db.client.player.deleteMany();
     await this.db.client.nFLTeam.deleteMany();
     await this.db.client.news.deleteMany();
+    await this.db.client.playerProjections.deleteMany();
   }
 
   async initialUpdate() {
@@ -75,6 +78,8 @@ class App {
     await this.updateGameScoresAndPlayerStats();
     console.log('Updating general news...');
     await this.updateNews();
+    console.log('Updating player projections...');
+    await this.updatePlayerProjections();
 
     await this.printDatabase();
   }
@@ -261,7 +266,31 @@ class App {
   }
 
   async updatePlayerProjections() {
-    console.log('Some implementatin');
+    // get player projections for weeks 1-6
+    for (let i = 1; i <= 6; i++) {
+      const resp: respObj = await this.stats.getAllPlayersProjectedGameStats(2023, i);
+
+      if (resp.data) {
+        const data = Object(resp.data);
+        const weeksProjections: PlayerProjections[] = data.map((proj) => {
+          //TODO: update to map correctly to a PlayerProjection //
+
+          return {
+            external_id: proj.NewsID,
+            updated_date: proj.Updated,
+            time_posted: proj.TimeAgo,
+            title: proj.Title,
+            content: proj.Content,
+            external_player_id: proj.PlayerID,
+            external_team_id: proj.TeamID,
+            source: proj.OriginalSource,
+            source_url: proj.OriginalSourceUrl,
+          };
+        });
+
+        await this.db.updatePlayerProjections(weeksProjections);
+      }
+    }
   }
 
   async updateGameScoresAndPlayerStats() {

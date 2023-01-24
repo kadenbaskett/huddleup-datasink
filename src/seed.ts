@@ -22,9 +22,7 @@ class Seed {
     const currentWeek = 6;
     const numLeagues = 4;
     const numTeams = 10;
-    const usersPerTeam = 3;
-    const numUsers = usersPerTeam * numTeams;
-    const users = await this.createFirebaseUsers(numUsers);
+    const users = await this.createFirebaseUsers();
     const leagueNames = this.generateLeagueNames(numLeagues);
 
     for (let i = 0; i < leagueNames.length; i++) {

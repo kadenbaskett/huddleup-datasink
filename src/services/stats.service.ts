@@ -69,12 +69,12 @@ class StatsService {
   }
 
   public async getAllPlayersProjectedGameStats(season: number, week: number): Promise<respObj> {
-    const url = this.baseProjectionURL + 'PlayerGameProjectionStatsByWeek/' + season + '/' + week;
+    const url =
+      this.baseProjectionURL + 'PlayerGameProjectionStatsByWeek/' + season + 'REG/' + week;
     return await this.getRequest(url);
   }
 
   // Endpoints requiring PlayerID params
-
   public async getPlayerDetails(playerID: number): Promise<respObj> {
     const url = this.baseScoresURL + 'Player/' + playerID;
     return await this.getRequest(url);
