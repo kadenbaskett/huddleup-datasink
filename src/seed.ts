@@ -188,7 +188,7 @@ class Seed {
         },
       });
 
-      if(tradeStatus === 'Completed')
+      if(tradeStatus === 'Complete')
       {
         await this.updateRostersPostTrade(teamOneRoster, teamTwoRoster, rosterPlayerOne, rosterPlayerTwo);
       }
