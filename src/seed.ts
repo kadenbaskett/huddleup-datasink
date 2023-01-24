@@ -1,24 +1,20 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
 import { PrismaClient } from '@prisma/client';
-import { createAccount } from '../firebase/firebase';
+// import { createAccount } from '../firebase/firebase';
 import { calculateSeasonLength, createMatchups } from './services/helpers.service';
-
 
 /*
  *  Seeds the database with mock data. The simulate league function will
  *  create new users, leagues, teams, rosters, and roster players
  */
 class Seed {
-
   client: PrismaClient;
 
-  constructor()
-  {
+  constructor() {
     this.client = new PrismaClient();
   }
 
-  async seedDB()
-  {
+  async seedDB() {
     await this.clearLeagueStuff();
 
     const season = 2022;
@@ -31,15 +27,21 @@ class Seed {
     const users = await this.createFirebaseUsers(numUsers);
     const leagueNames = this.generateLeagueNames(numLeagues);
 
-    for(let i = 0; i < leagueNames.length; i++)
-    {
+    for (let i = 0; i < leagueNames.length; i++) {
       const commish = users[Math.floor(Math.random() * users.length)];
-      await this.simulateLeague(users, leagueNames[i], commish, numTeams, season, currentWeek, numPlayoffTeams);
+      await this.simulateLeague(
+        users,
+        leagueNames[i],
+        commish,
+        numTeams,
+        season,
+        currentWeek,
+        numPlayoffTeams,
+      );
     }
   }
 
-  async clearLeagueStuff()
-  {
+  async clearLeagueStuff() {
     // The order that the tables are cleared in is important
     // We can't clear a table that is referenced by another table using a foreign key without first clearing
     // the table that references it
@@ -57,8 +59,7 @@ class Seed {
     console.log('Cleared db successfully of old league data');
   }
 
-  async simulateLeague(users, name, commish, numTeams, season, currentWeek, numPlayoffTeams)
-  {
+  async simulateLeague(users, name, commish, numTeams, season, currentWeek, numPlayoffTeams) {
     const teamNames = this.generateTeamNames(numTeams);
     const description = `example description for ${name}`;
 
@@ -72,8 +73,7 @@ class Seed {
     const regSeasonLen = calculateSeasonLength(numPlayoffTeams);
     const matchups = createMatchups(teams, regSeasonLen);
 
-    for(const matchup of matchups)
-    {
+    for (const matchup of matchups) {
       await this.client.matchup.create({
         data: {
           ...matchup,
@@ -83,8 +83,7 @@ class Seed {
     }
   }
 
-  async simulateTransactions(league, currentWeek)
-  {
+  async simulateTransactions(league, currentWeek) {
     const trades = [
       {
         pos: 'QB',
@@ -108,8 +107,7 @@ class Seed {
       },
     ];
 
-    for(const trade of trades)
-    {
+    for (const trade of trades) {
       const rosters = await this.client.roster.findMany({
         where: {
           week: trade.week,
@@ -138,65 +136,83 @@ class Seed {
         },
       });
 
-      await this.simulateTrade(teamOneRoster, teamTwoRoster, currentWeek, trade.pos, trade.week, trade.status, teamOne.managers[0].user_id);
+      await this.simulateTrade(
+        teamOneRoster,
+        teamTwoRoster,
+        currentWeek,
+        trade.pos,
+        trade.week,
+        trade.status,
+        teamOne.managers[0].user_id,
+      );
     }
   }
 
-  async simulateTrade(teamOneRoster, teamTwoRoster, currentWeek, pos, weekTradeCreated, tradeStatus, proposingUserId)
-  {
-      const rosterPlayerOne = teamOneRoster.players.find((p) => p.position === pos);
-      const rosterPlayerTwo = teamTwoRoster.players.find((p) => p.position === pos);
+  async simulateTrade(
+    teamOneRoster,
+    teamTwoRoster,
+    currentWeek,
+    pos,
+    weekTradeCreated,
+    tradeStatus,
+    proposingUserId,
+  ) {
+    const rosterPlayerOne = teamOneRoster.players.find((p) => p.position === pos);
+    const rosterPlayerTwo = teamTwoRoster.players.find((p) => p.position === pos);
 
-      const creation = new Date();
-      const execution = new Date();
-      const expiration = new Date();
+    const creation = new Date();
+    const execution = new Date();
+    const expiration = new Date();
 
-      const diff = currentWeek - weekTradeCreated;
-      const daysAgo = diff * 7;
+    const diff = currentWeek - weekTradeCreated;
+    const daysAgo = diff * 7;
 
-      creation.setDate(creation.getDate() - daysAgo);
-      execution.setDate(execution.getDate() - daysAgo + 1);
-      expiration.setDate(expiration.getDate() - daysAgo + 3);
+    creation.setDate(creation.getDate() - daysAgo);
+    execution.setDate(execution.getDate() - daysAgo + 1);
+    expiration.setDate(expiration.getDate() - daysAgo + 3);
 
-      const created = await this.client.transaction.create({
-        data: {
-          type: 'Trade',
-          status: tradeStatus,
-          creation_date: creation,
-          expiration_date: expiration,
-          execution_date: execution,
-          week: weekTradeCreated,
-          proposing_team_id: teamOneRoster.team_id,
-          related_team_id: teamTwoRoster.team_id,
-          user_id: proposingUserId,
-        },
-      });
+    const created = await this.client.transaction.create({
+      data: {
+        type: 'Trade',
+        status: tradeStatus,
+        creation_date: creation,
+        expiration_date: expiration,
+        execution_date: execution,
+        week: weekTradeCreated,
+        proposing_team_id: teamOneRoster.team_id,
+        related_team_id: teamTwoRoster.team_id,
+        user_id: proposingUserId,
+      },
+    });
 
-      await this.client.transactionPlayer.create({
-        data: {
-          transaction_id: created.id,
-          player_id: rosterPlayerOne.player_id,
-          joins_proposing_team: true,
-        },
-      });
+    await this.client.transactionPlayer.create({
+      data: {
+        transaction_id: created.id,
+        player_id: rosterPlayerOne.player_id,
+        joins_proposing_team: true,
+      },
+    });
 
-      await this.client.transactionPlayer.create({
-        data: {
-          transaction_id: created.id,
-          player_id: rosterPlayerTwo.player_id,
-          joins_proposing_team: false,
-        },
-      });
+    await this.client.transactionPlayer.create({
+      data: {
+        transaction_id: created.id,
+        player_id: rosterPlayerTwo.player_id,
+        joins_proposing_team: false,
+      },
+    });
 
-      if(tradeStatus === 'Completed')
-      {
-        await this.updateRostersPostTrade(teamOneRoster, teamTwoRoster, rosterPlayerOne, rosterPlayerTwo);
-      }
+    if (tradeStatus === 'Completed') {
+      await this.updateRostersPostTrade(
+        teamOneRoster,
+        teamTwoRoster,
+        rosterPlayerOne,
+        rosterPlayerTwo,
+      );
+    }
   }
 
   // Updates all rosters going forward with the new traded players
-  async updateRostersPostTrade(rosterOne, rosterTwo, rosterPlayerOne, rosterPlayerTwo)
-  {
+  async updateRostersPostTrade(rosterOne, rosterTwo, rosterPlayerOne, rosterPlayerTwo) {
     const teamOneRosters = await this.client.roster.findMany({
       where: {
         team_id: rosterOne.team_id,
@@ -206,8 +222,7 @@ class Seed {
       },
     });
 
-    for(const r of teamOneRosters)
-    {
+    for (const r of teamOneRosters) {
       // delete player one from roster one
       await this.client.rosterPlayer.delete({
         where: {
@@ -229,7 +244,6 @@ class Seed {
       });
     }
 
-
     const teamTwoRosters = await this.client.roster.findMany({
       where: {
         team_id: rosterTwo.team_id,
@@ -239,8 +253,7 @@ class Seed {
       },
     });
 
-    for(const r of teamTwoRosters)
-    {
+    for (const r of teamTwoRosters) {
       // delete player one from roster one
       await this.client.rosterPlayer.delete({
         where: {
@@ -263,45 +276,36 @@ class Seed {
     }
   }
 
-  async buildRandomRostersSamePlayersEveryWeek(weeks, season, teams)
-  {
+  async buildRandomRostersSamePlayersEveryWeek(weeks, season, teams) {
     let playerIdsUsed = [];
     const rosters = [];
-    for(const team of teams)
-    {
+    for (const team of teams) {
       const roster = await this.buildRandomRoster(1, team.id, season, playerIdsUsed);
 
-      if(roster.players)
-      {
-        const rosterPlayerIds = roster.players.map(p => p.external_id);
+      if (roster.players) {
+        const rosterPlayerIds = roster.players.map((p) => p.external_id);
         playerIdsUsed = playerIdsUsed.concat(rosterPlayerIds);
       }
 
       rosters.push(roster);
     }
 
-    for(let week = 2; week <= weeks; week++)
-    {
-      for(const r of rosters)
-      {
+    for (let week = 2; week <= weeks; week++) {
+      for (const r of rosters) {
         await this.copyRoster(week, r);
       }
     }
   }
 
-  async buildRandomRosterNewPlayersEveryWeek(weeks, season, teams)
-  {
-    for(let week = 1; week <= weeks; week++)
-    {
+  async buildRandomRosterNewPlayersEveryWeek(weeks, season, teams) {
+    for (let week = 1; week <= weeks; week++) {
       let playerIdsUsed = [];
       let weekRosters = [];
 
-      for(const team of teams)
-      {
+      for (const team of teams) {
         const roster = await this.buildRandomRoster(week, team.id, season, playerIdsUsed);
-        if(roster.players)
-        {
-          const rosterPlayerIds = roster.players.map(p => p.external_id);
+        if (roster.players) {
+          const rosterPlayerIds = roster.players.map((p) => p.external_id);
           playerIdsUsed = playerIdsUsed.concat(rosterPlayerIds);
         }
 
@@ -310,58 +314,71 @@ class Seed {
     }
   }
 
-  async createFirebaseUsers(numUsers)
-  {
+  async createFirebaseUsers() {
     // const userNames = await this.createUsernames(numUsers);
 
-    const userNames = [ 'talloryx0', 'domesticrabbit1',
-    'lovablequail2', 'slimybadger3',
-    'scalygoat4', 'wildcassowary5',
-    'fierceseahorse6', 'herbivorouscobra7',
-    'domesticsandpiper8', 'hairywolverine9',
-    'smallgoshawk10', 'nosyrook11',
-    'loudhedgehog12', 'shortmarten13',
-    'cleverguanaco14', 'curiousbear15',
-    'poisonousibex16', 'feistytiger17',
-    'carnivorouseel18', 'colorfulcassowary19',
-    'malicioussardine20', 'scalyhornet21',
-    'viciousspider22', 'tenaciouseland23',
-    'sassybear24', 'smallmole25',
-    'warmvulture26', 'maternalhorse27',
-    'heavymole28', 'tinymoose29' ];
+    const userNames = [
+      'talloryx0',
+      'domesticrabbit1',
+      'lovablequail2',
+      'slimybadger3',
+      'scalygoat4',
+      'wildcassowary5',
+      'fierceseahorse6',
+      'herbivorouscobra7',
+      'domesticsandpiper8',
+      'hairywolverine9',
+      'smallgoshawk10',
+      'nosyrook11',
+      'loudhedgehog12',
+      'shortmarten13',
+      'cleverguanaco14',
+      'curiousbear15',
+      'poisonousibex16',
+      'feistytiger17',
+      'carnivorouseel18',
+      'colorfulcassowary19',
+      'malicioussardine20',
+      'scalyhornet21',
+      'viciousspider22',
+      'tenaciouseland23',
+      'sassybear24',
+      'smallmole25',
+      'warmvulture26',
+      'maternalhorse27',
+      'heavymole28',
+      'tinymoose29',
+    ];
 
     const users = [];
 
-    for(const name of userNames)
-    {
-        const u = {
-          username: name,
-          email: `${name}@gmail.com`,
-        };
+    for (const name of userNames) {
+      const u = {
+        username: name,
+        email: `${name}@gmail.com`,
+      };
 
-        // await createAccount(u.username, u.email, 'password');
-        users.push(u);
+      // await createAccount(u.username, u.email, 'password');
+      users.push(u);
     }
 
     const createdUsers = [];
 
-    for(const user of users)
-    {
-        const resp = await this.client.user.create({
-            data: user,
-        });
-        createdUsers.push(resp);
+    for (const user of users) {
+      const resp = await this.client.user.create({
+        data: user,
+      });
+      createdUsers.push(resp);
     }
 
     return createdUsers;
   }
 
-  async createLeague(name, description, commissioner_id)
-  {
+  async createLeague(name, description, commissioner_id) {
     const league = {
-        name,
-        description,
-        commissioner_id,
+      name,
+      description,
+      commissioner_id,
     };
 
     const resp = await this.client.league.create({
@@ -371,20 +388,18 @@ class Seed {
     return resp;
   }
 
-  async createTeams(league, users, teamNames)
-  {
+  async createTeams(league, users, teamNames) {
     const teams = [];
 
-    for(let i = 0; i < teamNames.length; i++)
-    {
+    for (let i = 0; i < teamNames.length; i++) {
       const ts = await this.client.teamSettings.create({
         data: {},
       });
 
       const team = {
-          name: teamNames[i],
-          league_id: league.id,
-          team_settings_id: ts.id,
+        name: teamNames[i],
+        league_id: league.id,
+        team_settings_id: ts.id,
       };
 
       const resp = await this.client.team.create({
@@ -395,12 +410,10 @@ class Seed {
     }
 
     let userNum = 0;
-    for(let teamNum = 0; teamNum < teams.length; teamNum++)
-    {
+    for (let teamNum = 0; teamNum < teams.length; teamNum++) {
       const team = teams[teamNum];
 
-      for(let i = userNum; i < userNum + 3; i++)
-      {
+      for (let i = userNum; i < userNum + 3; i++) {
         await this.client.userToTeam.create({
           data: {
             team_id: team.id,
@@ -416,8 +429,7 @@ class Seed {
     return teams;
   }
 
-  async copyRoster(week, oldRoster)
-  {
+  async copyRoster(week, oldRoster) {
     const r = {
       week: week,
       team_id: oldRoster.team_id,
@@ -430,8 +442,7 @@ class Seed {
     });
 
     // Create roster player
-    for(const oldPlayer of oldRoster.players)
-    {
+    for (const oldPlayer of oldRoster.players) {
       const rp = {
         external_id: oldPlayer.external_id,
         position: oldPlayer.position,
@@ -443,7 +454,6 @@ class Seed {
         data: rp,
       });
     }
-
 
     const created = await this.client.roster.findFirstOrThrow({
       where: {
@@ -457,12 +467,11 @@ class Seed {
     return created;
   }
 
-  async buildRandomRoster(week, team_id, season, playerIdsUsed)
-  {
+  async buildRandomRoster(week, team_id, season, playerIdsUsed) {
     const r = {
-        week,
-        team_id,
-        season,
+      week,
+      team_id,
+      season,
     };
 
     const roster = await this.client.roster.create({
@@ -470,12 +479,12 @@ class Seed {
     });
 
     const constraints = {
-      'QB': 1,
-      'RB': 2,
-      'WR': 2,
-      'TE': 1,
-      'FLEX': 1,
-      'TOTAL': 15,
+      QB: 1,
+      RB: 2,
+      WR: 2,
+      TE: 1,
+      FLEX: 1,
+      TOTAL: 15,
     };
 
     const allowedPositions = [ 'RB', 'WR', 'TE', 'QB' ];
@@ -483,8 +492,7 @@ class Seed {
     const players = await this.client.player.findMany();
     this.shuffleArray(players);
 
-    for(const p of players)
-    {
+    for (const p of players) {
       const rp = {
         external_id: p.external_id,
         position: p.position,
@@ -492,24 +500,23 @@ class Seed {
         player_id: p.id,
       };
 
-      const allPosFilled = constraints['QB'] === 0 && constraints['WR'] === 0 && constraints['RB'] === 0 && constraints['TE'] === 0;
+      const allPosFilled =
+        constraints['QB'] === 0 &&
+        constraints['WR'] === 0 &&
+        constraints['RB'] === 0 &&
+        constraints['TE'] === 0;
 
-      if(playerIdsUsed.includes(rp.external_id) || !allowedPositions.includes(p.position))
-      {
+      if (playerIdsUsed.includes(rp.external_id) || !allowedPositions.includes(p.position)) {
         // Skip the player if someone owns them already or if they play a non fantasy position
         continue;
-      }
-      else if(constraints[p.position])
-      {
+      } else if (constraints[p.position]) {
         await this.client.rosterPlayer.create({
           data: rp,
         });
 
         constraints[rp.position]--;
         constraints['TOTAL']--;
-      }
-      else if (constraints['FLEX'] && flexPositions.includes(p.position))
-      {
+      } else if (constraints['FLEX'] && flexPositions.includes(p.position)) {
         rp.position = 'FLEX';
 
         await this.client.rosterPlayer.create({
@@ -520,8 +527,7 @@ class Seed {
         constraints['TOTAL']--;
       }
       // Once all starting positions have been filled, create the bench
-      else if(constraints['TOTAL'] && allPosFilled)
-      {
+      else if (constraints['TOTAL'] && allPosFilled) {
         rp.position = 'BE';
 
         await this.client.rosterPlayer.create({
@@ -532,8 +538,7 @@ class Seed {
         constraints['TOTAL']--;
       }
 
-      if(!constraints['TOTAL'])
-      {
+      if (!constraints['TOTAL']) {
         break;
       }
     }
@@ -550,38 +555,33 @@ class Seed {
     return created;
   }
 
-
   // Helper methods that don't interact with the database
 
   shuffleArray(array) {
     for (let i = array.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [ array[i], array[j] ] = [ array[j], array[i] ];
+      const j = Math.floor(Math.random() * (i + 1));
+      [ array[i], array[j] ] = [ array[j], array[i] ];
     }
   }
 
-  generateTeamNames(numTeams)
-  {
+  generateTeamNames(numTeams) {
     const names = [];
     const rand = Math.round(Math.random() * 1000);
 
-    for(let i = 0; i < numTeams; i++)
-    {
+    for (let i = 0; i < numTeams; i++) {
       names.push('Team ' + i * rand);
     }
 
     return names;
   }
 
-  createUsernames(num)
-  {
+  createUsernames(num) {
     const users = [];
 
-    for(let i = 0; i < num; i++)
-    {
+    for (let i = 0; i < num; i++) {
       const randomAnimalName = require('random-animal-name');
       let animalName = randomAnimalName();
-      animalName = animalName.replaceAll(' ', '').toLowerCase().replaceAll('-','');
+      animalName = animalName.replaceAll(' ', '').toLowerCase().replaceAll('-', '');
 
       users.push(`${animalName}${i}`);
     }
@@ -589,22 +589,15 @@ class Seed {
     return users;
   }
 
-  generateLeagueNames(numLeagues)
-  {
+  generateLeagueNames(numLeagues) {
     const names = [];
     const rand = Math.round(Math.random() * 1000);
 
-    for(let i = 0; i < numLeagues; i++)
-    {
+    for (let i = 0; i < numLeagues; i++) {
       names.push('League ' + i * rand);
     }
 
     return names;
   }
-
-
-
-
 }
 export default Seed;
-

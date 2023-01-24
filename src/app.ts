@@ -1,4 +1,4 @@
-import { NFLGame, NFLTeam, Player, Timeframe, News } from '@prisma/client';
+import { NFLGame, Player, Timeframe, News } from '@prisma/client';
 import { respObj } from '@interfaces/respobj.interface';
 import DatabaseService from '@services/database.service';
 import StatsService from '@services/stats.service';
@@ -18,20 +18,16 @@ const config = {
   allowedPositions: [ 'QB', 'RB', 'WR', 'TE' ],
 };
 
-
 class App {
-
   stats: StatsService;
   db: DatabaseService;
 
-  constructor()
-  {
+  constructor() {
     this.stats = new StatsService();
     this.db = new DatabaseService();
   }
 
-  startUpdateLoop()
-  {
+  startUpdateLoop() {
     setInterval(this.updateTimeframes.bind(this), config.timeframe);
     setInterval(this.updateTeams.bind(this), config.teams);
     setInterval(this.updatePlayers.bind(this), config.players);
@@ -40,23 +36,22 @@ class App {
     setInterval(this.updateNews.bind(this), config.news);
   }
 
-  async printDatabase()
-  {
-      const timeframes = await this.db.getTimeframe();
-      console.log('Timeframe: ', timeframes);
-      const teams = await this.db.getNFLTeams();
-      console.log('Teams: ', teams[0]);
-      const schedule = await this.db.getAllNFLGames();
-      console.log('Schedule: ', schedule[0]);
-      const players = await this.db.getPlayers();
-      console.log('Players: ', players[0]);
-      const stats = await this.db.getAllPlayerStats();
-      const news = await this.db.getNews();
-      console.log('News: ', news[0]);
+  async printDatabase() {
+    const timeframes = await this.db.getTimeframe();
+    console.log('Timeframe: ', timeframes);
+    const teams = await this.db.getNFLTeams();
+    console.log('Teams: ', teams[0]);
+    const schedule = await this.db.getAllNFLGames();
+    console.log('Schedule: ', schedule[0]);
+    const players = await this.db.getPlayers();
+    console.log('Players: ', players[0]);
+    const stats = await this.db.getAllPlayerStats();
+    console.log('Stats: ', stats[0]);
+    const news = await this.db.getNews();
+    console.log('News: ', news[0]);
   }
 
-  async clearDB()
-  {
+  async clearDB() {
     console.log('Clearing the database before initial update');
     await this.db.client.timeframe.deleteMany();
     await this.db.client.playerGameStats.deleteMany();
@@ -66,8 +61,7 @@ class App {
     await this.db.client.news.deleteMany();
   }
 
-  async initialUpdate()
-  {
+  async initialUpdate() {
     await this.clearDB();
 
     console.log('Adding all NFL teams, schedules, and players to the db...');
@@ -85,22 +79,21 @@ class App {
     await this.printDatabase();
   }
 
-  async updateTimeframes()
-  {
+  async updateTimeframes() {
     const resp = await this.stats.getTimeframes();
 
-    if(resp.data)
-    {
+    if (resp.data) {
       let timeframes = Object(resp.data);
 
       timeframes = timeframes.map((tf) => {
-        if(Number(tf.Season) > 2021 && Number(tf.Week) > 6 && Number(tf.SeasonType) === 1)
-        {
+        if (Number(tf.Season) > 2021 && Number(tf.Week) > 6 && Number(tf.SeasonType) === 1) {
           tf.HasEnded = false;
           tf.HasStarted = false;
-        }
-        else if(Number(tf.Season) > 2021 && Number(tf.Week) === 6 && Number(tf.SeasonType) === 1)
-        {
+        } else if (
+          Number(tf.Season) > 2021 &&
+          Number(tf.Week) === 6 &&
+          Number(tf.SeasonType) === 1
+        ) {
           tf.HasEnded = false;
           tf.HasStarted = true;
         }
@@ -112,55 +105,52 @@ class App {
     }
   }
 
-  async updateTeams()
-  {
+  async updateTeams() {
     const timeframe: Timeframe = await this.db.getTimeframe();
 
-    if(timeframe)
-    {
-        const resp: respObj = await this.stats.getNFLTeams(timeframe.season);
+    if (timeframe) {
+      const resp: respObj = await this.stats.getNFLTeams(timeframe.season);
 
-        if(resp.data)
-        {
-          const data = Object(resp.data);
+      if (resp.data) {
+        const data = Object(resp.data);
 
-          const teams = data.map(team => {
-              return {
-                external_id: team.TeamID,
-                key: team.Key,
-                city: team.City,
-                name: team.Name,
-                season: timeframe.season,
-              };
-            });
-          
-          await this.db.setNFLTeams(teams);
-        }
+        const teams = data.map((team) => {
+          return {
+            external_id: team.TeamID,
+            key: team.Key,
+            city: team.City,
+            name: team.Name,
+            season: timeframe.season,
+          };
+        });
+
+        await this.db.setNFLTeams(teams);
+      }
     }
   }
 
-  async updatePlayers()
-  {
-      const resp: respObj = await this.stats.getPlayers();
+  async updatePlayers() {
+    const resp: respObj = await this.stats.getPlayers();
 
-      if(resp.data)
-      {
-        const data = Object(resp.data);
+    if (resp.data) {
+      const data = Object(resp.data);
 
-        const players: Player[] = data.filter(p => p.GlobalTeamID > 0 && config.allowedPositions.includes(p.Position)).map(p => {
-            return {
-              external_id: p.PlayerID,
-              first_name: p.FirstName,
-              last_name: p.LastName,
-              status: p.Status,
-              position: p.Position,
-              photo_url: p.PhotoUrl,
-              nfl_team_external_id: p.GlobalTeamID,
-            };
+      const players: Player[] = data
+        .filter((p) => p.GlobalTeamID > 0 && config.allowedPositions.includes(p.Position))
+        .map((p) => {
+          return {
+            external_id: p.PlayerID,
+            first_name: p.FirstName,
+            last_name: p.LastName,
+            status: p.Status,
+            position: p.Position,
+            photo_url: p.PhotoUrl,
+            nfl_team_external_id: p.GlobalTeamID,
+          };
         });
 
-        await this.db.setPlayers(players);
-      }
+      await this.db.setPlayers(players);
+    }
   }
 
   async updateNews() {
@@ -188,145 +178,142 @@ class App {
   }
 
   async updateSchedule() {
-
     const timeframe: Timeframe = await this.db.getTimeframe();
 
-    if(timeframe)
-    {
-        const resp: respObj = await this.stats.getSchedules(timeframe.season);
+    if (timeframe) {
+      const resp: respObj = await this.stats.getSchedules(timeframe.season);
 
-        if(resp.data)
-        {
-          const data = Object(resp.data);
+      if (resp.data) {
+        const data = Object(resp.data);
 
-          const games: NFLGame[] = data.filter(g => g.GameKey).map(g => {
-
-              return {
-                external_id: Number(g.GameKey),
-                season: g.Season,
-                week: g.Week,
-                date: new Date(g.Date),
-                away_team_id: g.GlobalAwayTeamID,
-                home_team_id: g.GlobalHomeTeamID,
-                status: g.Status,
-                external_score_id: g.ScoreID,
-              };
+        const games: NFLGame[] = data
+          .filter((g) => g.GameKey)
+          .map((g) => {
+            return {
+              external_id: Number(g.GameKey),
+              season: g.Season,
+              week: g.Week,
+              date: new Date(g.Date),
+              away_team_id: g.GlobalAwayTeamID,
+              home_team_id: g.GlobalHomeTeamID,
+              status: g.Status,
+              external_score_id: g.ScoreID,
+            };
           });
 
-          await this.db.setNFLSchedule(games);
-        }
+        await this.db.setNFLSchedule(games);
+      }
     }
   }
 
+  async updateCompletedGames() {
+    const gamesCompleted = await this.db.getCompletedGames();
 
-  async updateCompletedGames()
-  {
-      const gamesCompleted = await this.db.getCompletedGames();
+    if (gamesCompleted.length) {
+      for (const game of gamesCompleted) {
+        const resp: respObj = await this.stats.getBoxScore(game.external_score_id);
 
-      if(gamesCompleted.length)
-      {
-        for(const game of gamesCompleted)
-        {
-            const resp: respObj = await this.stats.getBoxScore(game.external_score_id);
+        if (resp.data) {
+          const boxScore = Object(resp.data);
 
-            if(resp.data)
-            {
-              const boxScore = Object(resp.data);
-              
-              const game = await this.db.updateScore(Number(boxScore.Score.GameKey), boxScore.Score.homeScore, boxScore.Score.AwayScore);
+          const game = await this.db.updateScore(
+            Number(boxScore.Score.GameKey),
+            boxScore.Score.homeScore,
+            boxScore.Score.AwayScore,
+          );
 
-              for(const pg of boxScore.PlayerGames)
-              {
-                  const playerId = await this.db.externalToInternalPlayer(pg.PlayerID);
-                  const teamId = await this.db.externalToInternalNFLTeam(Number(pg.GlobalTeamID));
+          for (const pg of boxScore.PlayerGames) {
+            const playerId = await this.db.externalToInternalPlayer(pg.PlayerID);
+            const teamId = await this.db.externalToInternalNFLTeam(Number(pg.GlobalTeamID));
 
-                  if(playerId)
-                  {
-                    // Have to use Math.floor to convert floats to Int becuase the data is scrambled
-                    const gameStats = {
-                      external_player_id: pg.PlayerID,
-                      external_game_id: Number(pg.GameKey),
-                      player_id: playerId,
-                      team_id: teamId,
-                      game_id: game.id,
-                      pass_yards: Math.floor(pg.PassingYards),
-                      pass_attempts: Math.floor(pg.PassingAttempts),
-                      completions: Math.floor(pg.PassingCompletions),
-                      pass_td: Math.floor(pg.PassingTouchdowns),
-                      interceptions_thrown: Math.floor(pg.PassingInterceptions),
-                      fumbles: Math.floor(pg.Fumbles),
-                      receptions: Math.floor(pg.Receptions),
-                      rec_td: Math.floor(pg.ReceivingTouchdowns),
-                      rec_yards: Math.floor(pg.ReceivingYards),
-                      targets: Math.floor(pg.ReceivingTargets),
-                      rush_attempts: Math.floor(pg.RushingAttempts),
-                      rush_yards: Math.floor(pg.RushingYards),
-                      rush_td: Math.floor(pg.RushingTouchdowns),
-                      two_point_conversion_passes: Math.floor(pg.TwoPointConversionPasses),
-                      two_point_conversion_runs: Math.floor(pg.TwoPointConversionRuns),
-                      two_point_conversion_receptions: Math.floor(pg.TwoPointConversionReceptions),
-                    };
+            if (playerId) {
+              // Have to use Math.floor to convert floats to Int becuase the data is scrambled
+              const gameStats = {
+                external_player_id: pg.PlayerID,
+                external_game_id: Number(pg.GameKey),
+                player_id: playerId,
+                team_id: teamId,
+                game_id: game.id,
+                pass_yards: Math.floor(pg.PassingYards),
+                pass_attempts: Math.floor(pg.PassingAttempts),
+                completions: Math.floor(pg.PassingCompletions),
+                pass_td: Math.floor(pg.PassingTouchdowns),
+                interceptions_thrown: Math.floor(pg.PassingInterceptions),
+                fumbles: Math.floor(pg.Fumbles),
+                receptions: Math.floor(pg.Receptions),
+                rec_td: Math.floor(pg.ReceivingTouchdowns),
+                rec_yards: Math.floor(pg.ReceivingYards),
+                targets: Math.floor(pg.ReceivingTargets),
+                rush_attempts: Math.floor(pg.RushingAttempts),
+                rush_yards: Math.floor(pg.RushingYards),
+                rush_td: Math.floor(pg.RushingTouchdowns),
+                two_point_conversion_passes: Math.floor(pg.TwoPointConversionPasses),
+                two_point_conversion_runs: Math.floor(pg.TwoPointConversionRuns),
+                two_point_conversion_receptions: Math.floor(pg.TwoPointConversionReceptions),
+              };
 
-                    await this.db.updatePlayerGameStats(gameStats);
-                  }
-              }
+              await this.db.updatePlayerGameStats(gameStats);
             }
+          }
         }
       }
+    }
   }
 
-  async updateGameScoresAndPlayerStats()
-  {
-      const gamesInProgress = await this.db.getGamesInProgress();
+  async updatePlayerProjections() {
+    console.log('Some implementatin');
+  }
 
-      if(gamesInProgress.length)
-      {
-        for(const game of gamesInProgress)
-        {
-            const resp: respObj = await this.stats.getBoxScore(game.external_score_id);
+  async updateGameScoresAndPlayerStats() {
+    const gamesInProgress = await this.db.getGamesInProgress();
 
-            if(resp.data)
-            {
-              const boxScore = Object(resp.data);
-              
-              const game = await this.db.updateScore(Number(boxScore.Score.GameKey), boxScore.Score.homeScore, boxScore.Score.AwayScore);
+    if (gamesInProgress.length) {
+      for (const game of gamesInProgress) {
+        const resp: respObj = await this.stats.getBoxScore(game.external_score_id);
 
-              for(const pg of boxScore.PlayerGames)
-              {
-                  const playerId = await this.db.externalToInternalPlayer(pg.PlayerID);
-                  const teamId = await this.db.externalToInternalNFLTeam(Number(pg.TeamID));
+        if (resp.data) {
+          const boxScore = Object(resp.data);
 
-                  if(playerId)
-                  {
-                    // Have to use Math.floor to convert floats to Int becuase the data is scrambled
-                    const gameStats = {
-                      external_player_id: pg.PlayerID,
-                      external_game_id: Number(pg.GameKey),
-                      player_id: playerId,
-                      team_id: teamId,
-                      game_id: game.id,
-                      pass_yards: Math.floor(pg.PassingYards),
-                      pass_attempts: Math.floor(pg.PassingAttempts),
-                      completions: Math.floor(pg.PassingCompletions),
-                      pass_td: Math.floor(pg.PassingTouchdowns),
-                      interceptions_thrown: Math.floor(pg.PassingInterceptions),
-                      receptions: Math.floor(pg.Receptions),
-                      rec_yards: Math.floor(pg.ReceivingYards),
-                      targets: Math.floor(pg.ReceivingTargets),
-                      rush_attempts: Math.floor(pg.RushingAttempts),
-                      rush_yards: Math.floor(pg.RushingYards),
-                      rush_td: Math.floor(pg.RushingTouchdowns),
-                      two_point_conversion_passes: Math.floor(pg.TwoPointConversionPasses),
-                      two_point_conversion_runs: Math.floor(pg.TwoPointConversionRuns),
-                      two_point_conversion_receptions: Math.floor(pg.TwoPointConversionReceptions),
-                    };
+          const game = await this.db.updateScore(
+            Number(boxScore.Score.GameKey),
+            boxScore.Score.homeScore,
+            boxScore.Score.AwayScore,
+          );
 
-                    await this.db.updatePlayerGameStats(gameStats);
-                  }
-                }
+          for (const pg of boxScore.PlayerGames) {
+            const playerId = await this.db.externalToInternalPlayer(pg.PlayerID);
+            const teamId = await this.db.externalToInternalNFLTeam(Number(pg.TeamID));
+
+            if (playerId) {
+              // Have to use Math.floor to convert floats to Int becuase the data is scrambled
+              const gameStats = {
+                external_player_id: pg.PlayerID,
+                external_game_id: Number(pg.GameKey),
+                player_id: playerId,
+                team_id: teamId,
+                game_id: game.id,
+                pass_yards: Math.floor(pg.PassingYards),
+                pass_attempts: Math.floor(pg.PassingAttempts),
+                completions: Math.floor(pg.PassingCompletions),
+                pass_td: Math.floor(pg.PassingTouchdowns),
+                interceptions_thrown: Math.floor(pg.PassingInterceptions),
+                receptions: Math.floor(pg.Receptions),
+                rec_yards: Math.floor(pg.ReceivingYards),
+                targets: Math.floor(pg.ReceivingTargets),
+                rush_attempts: Math.floor(pg.RushingAttempts),
+                rush_yards: Math.floor(pg.RushingYards),
+                rush_td: Math.floor(pg.RushingTouchdowns),
+                two_point_conversion_passes: Math.floor(pg.TwoPointConversionPasses),
+                two_point_conversion_runs: Math.floor(pg.TwoPointConversionRuns),
+                two_point_conversion_receptions: Math.floor(pg.TwoPointConversionReceptions),
+              };
+
+              await this.db.updatePlayerGameStats(gameStats);
             }
+          }
         }
       }
+    }
   }
 }
 
