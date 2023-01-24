@@ -33,7 +33,7 @@ class Seed {
 
     for(let i = 0; i < leagueNames.length; i++)
     {
-      const commish = users[Math.floor(Math.random() * users.length)]; 
+      const commish = users[Math.floor(Math.random() * users.length)];
       await this.simulateLeague(users, leagueNames[i], commish, numTeams, season, currentWeek, numPlayoffTeams);
     }
   }
@@ -60,8 +60,9 @@ class Seed {
   async simulateLeague(users, name, commish, numTeams, season, currentWeek, numPlayoffTeams)
   {
     const teamNames = this.generateTeamNames(numTeams);
+    const description = `example description for ${name}`;
 
-    const league = await this.createLeague(name, commish.id);
+    const league = await this.createLeague(name, description, commish.id);
     const teams = await this.createTeams(league, users, teamNames);
 
     await this.buildRandomRostersSamePlayersEveryWeek(currentWeek, season, teams);
@@ -78,7 +79,7 @@ class Seed {
           ...matchup,
           league_id: league.id,
         },
-      }); 
+      });
     }
   }
 
@@ -124,11 +125,24 @@ class Seed {
       const teamOneRoster = rosters.at(0);
       const teamTwoRoster = rosters.at(1);
 
-      await this.simulateTrade(teamOneRoster, teamTwoRoster, currentWeek, trade.pos, trade.week, trade.status);
+      const teamOne = await this.client.team.findUnique({
+        where: {
+          id: teamOneRoster.team_id,
+        },
+        include: {
+          managers: {
+            include: {
+              user: true,
+            },
+          },
+        },
+      });
+
+      await this.simulateTrade(teamOneRoster, teamTwoRoster, currentWeek, trade.pos, trade.week, trade.status, teamOne.managers[0].user_id);
     }
   }
 
-  async simulateTrade(teamOneRoster, teamTwoRoster, currentWeek, pos, weekTradeCreated, tradeStatus)
+  async simulateTrade(teamOneRoster, teamTwoRoster, currentWeek, pos, weekTradeCreated, tradeStatus, proposingUserId)
   {
       const rosterPlayerOne = teamOneRoster.players.find((p) => p.position === pos);
       const rosterPlayerTwo = teamTwoRoster.players.find((p) => p.position === pos);
@@ -154,6 +168,7 @@ class Seed {
           week: weekTradeCreated,
           proposing_team_id: teamOneRoster.team_id,
           related_team_id: teamTwoRoster.team_id,
+          user_id: proposingUserId,
         },
       });
 
@@ -189,7 +204,7 @@ class Seed {
           gte: rosterOne.week,
         },
       },
-    }); 
+    });
 
     for(const r of teamOneRosters)
     {
@@ -200,7 +215,7 @@ class Seed {
             roster_id: r.id,
             player_id: rosterPlayerOne.player_id,
           },
-        }, 
+        },
       });
 
       // add player two to roster one
@@ -222,7 +237,7 @@ class Seed {
           gte: rosterTwo.week,
         },
       },
-    }); 
+    });
 
     for(const r of teamTwoRosters)
     {
@@ -233,7 +248,7 @@ class Seed {
             roster_id: r.id,
             player_id: rosterPlayerTwo.player_id,
           },
-        }, 
+        },
       });
 
       // add player two to roster one
@@ -247,7 +262,7 @@ class Seed {
       });
     }
   }
-  
+
   async buildRandomRostersSamePlayersEveryWeek(weeks, season, teams)
   {
     let playerIdsUsed = [];
@@ -269,7 +284,7 @@ class Seed {
     {
       for(const r of rosters)
       {
-        await this.copyRoster(week, r); 
+        await this.copyRoster(week, r);
       }
     }
   }
@@ -334,23 +349,24 @@ class Seed {
     {
         const resp = await this.client.user.create({
             data: user,
-        }); 
+        });
         createdUsers.push(resp);
     }
 
     return createdUsers;
   }
 
-  async createLeague(name, commishID)
+  async createLeague(name, description, commissioner_id)
   {
     const league = {
-        name: name,
-        commissioner_id: commishID,
+        name,
+        description,
+        commissioner_id,
     };
 
     const resp = await this.client.league.create({
       data: league,
-    }); 
+    });
 
     return resp;
   }
@@ -373,7 +389,7 @@ class Seed {
 
       const resp = await this.client.team.create({
         data: team,
-      }); 
+      });
 
       teams.push(resp);
     }
@@ -411,7 +427,7 @@ class Seed {
     // Create roster
     const newRoster = await this.client.roster.create({
       data: r,
-    }); 
+    });
 
     // Create roster player
     for(const oldPlayer of oldRoster.players)
@@ -428,7 +444,7 @@ class Seed {
       });
     }
 
-    
+
     const created = await this.client.roster.findFirstOrThrow({
       where: {
         id: newRoster.id,
@@ -451,7 +467,7 @@ class Seed {
 
     const roster = await this.client.roster.create({
       data: r,
-    }); 
+    });
 
     const constraints = {
       'QB': 1,

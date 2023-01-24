@@ -2,6 +2,7 @@
 CREATE TABLE `League` (
     `id` INTEGER NOT NULL AUTO_INCREMENT,
     `name` VARCHAR(191) NOT NULL,
+    `description` VARCHAR(191) NOT NULL,
     `commissioner_id` INTEGER NOT NULL,
 
     PRIMARY KEY (`id`)
@@ -199,6 +200,7 @@ CREATE TABLE `Transaction` (
     `expiration_date` DATETIME(3) NOT NULL,
     `execution_date` DATETIME(3) NOT NULL,
     `week` INTEGER NOT NULL,
+    `user_id` INTEGER NOT NULL DEFAULT 0,
     `proposing_team_id` INTEGER NOT NULL DEFAULT 0,
     `related_team_id` INTEGER NOT NULL DEFAULT 0,
 
@@ -358,6 +360,9 @@ ALTER TABLE `TransactionPlayer` ADD CONSTRAINT `TransactionPlayer_transaction_id
 
 -- AddForeignKey
 ALTER TABLE `TransactionPlayer` ADD CONSTRAINT `TransactionPlayer_player_id_fkey` FOREIGN KEY (`player_id`) REFERENCES `Player`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `Transaction` ADD CONSTRAINT `Transaction_user_id_fkey` FOREIGN KEY (`user_id`) REFERENCES `User`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE `Transaction` ADD CONSTRAINT `Transaction_proposing_team_id_fkey` FOREIGN KEY (`proposing_team_id`) REFERENCES `Team`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
