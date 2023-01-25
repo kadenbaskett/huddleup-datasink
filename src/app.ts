@@ -272,19 +272,27 @@ class App {
 
       if (resp.data) {
         const data = Object(resp.data);
-        const weeksProjections: PlayerProjections[] = data.map((proj) => {
-          //TODO: update to map correctly to a PlayerProjection //
-
+        const weeksProjections: PlayerProjections[] = data.map(async (proj) => {
           return {
-            external_id: proj.NewsID,
-            updated_date: proj.Updated,
-            time_posted: proj.TimeAgo,
-            title: proj.Title,
-            content: proj.Content,
             external_player_id: proj.PlayerID,
-            external_team_id: proj.TeamID,
-            source: proj.OriginalSource,
-            source_url: proj.OriginalSourceUrl,
+            external_game_id: Number(proj.GameKey),
+            player_id: await this.db.externalToInternalPlayer(proj.PlayerID),
+            team_id: await this.db.externalToInternalNFLTeam(proj.TeamID),
+            game_id: await this.db.externalToInternalNFLGame(Number(proj.GameKey)),
+            pass_yards: Math.floor(proj.PassingYards),
+            pass_attempts: Math.floor(proj.PassingAttempts),
+            completions: Math.floor(proj.PassingCompletions),
+            pass_td: Math.floor(proj.PassingTouchdowns),
+            interceptions_thrown: Math.floor(proj.PassingInterceptions),
+            receptions: Math.floor(proj.Receptions),
+            rec_yards: Math.floor(proj.ReceivingYards),
+            targets: Math.floor(proj.ReceivingTargets),
+            rush_attempts: Math.floor(proj.RushingAttempts),
+            rush_yards: Math.floor(proj.RushingYards),
+            rush_td: Math.floor(proj.RushingTouchdowns),
+            two_point_conversion_passes: Math.floor(proj.TwoPointConversionPasses),
+            two_point_conversion_runs: Math.floor(proj.TwoPointConversionRuns),
+            two_point_conversion_receptions: Math.floor(proj.TwoPointConversionReceptions),
           };
         });
 
