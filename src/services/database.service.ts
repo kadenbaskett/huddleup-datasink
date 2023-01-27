@@ -6,6 +6,7 @@ import {
   Timeframe,
   PlayerGameStats,
   News,
+  PlayerProjections,
 } from '@prisma/client';
 
 class DatabaseService {
@@ -111,8 +112,6 @@ class DatabaseService {
             source_url: n.source_url,
           },
         });
-
-        console.log('News added to db!');
       } catch (e) {
         console.log(e);
         console.log(n);
@@ -284,6 +283,68 @@ class DatabaseService {
     }
   }
 
+  public async updatePlayerProjections(proj) {
+    try {
+      await this.client.playerProjections.upsert({
+        where: {
+          external_game_id_external_player_id: {
+            external_game_id: proj.external_game_id,
+            external_player_id: proj.external_player_id,
+          },
+        },
+        update: {
+          external_game_id: proj.external_game_id,
+          external_player_id: proj.external_player_id,
+          pass_yards: proj.pass_yards,
+          pass_attempts: proj.pass_attempts,
+          completions: proj.completions,
+          pass_td: proj.pass_td,
+          interceptions_thrown: proj.interceptions_thrown,
+          fumbles: proj.fumbles,
+          receptions: proj.receptions,
+          rec_td: proj.rec_td,
+          rec_yards: proj.rec_yards,
+          targets: proj.targets,
+          rush_attempts: proj.rush_attempts,
+          rush_yards: proj.rush_yards,
+          rush_td: proj.rush_td,
+          two_point_conversion_passes: proj.two_point_conversion_passes,
+          two_point_conversion_runs: proj.two_point_conversion_runs,
+          two_point_conversion_receptions: proj.two_point_conversion_runs,
+          player_id: proj.player_id,
+          team_id: proj.team_id,
+          game_id: proj.game_id,
+        },
+        create: {
+          external_game_id: proj.external_game_id,
+          external_player_id: proj.external_player_id,
+          pass_yards: proj.pass_yards,
+          pass_attempts: proj.pass_attempts,
+          completions: proj.completions,
+          pass_td: proj.pass_td,
+          interceptions_thrown: proj.interceptions_thrown,
+          fumbles: proj.fumbles,
+          receptions: proj.receptions,
+          rec_td: proj.rec_td,
+          rec_yards: proj.rec_yards,
+          targets: proj.targets,
+          rush_attempts: proj.rush_attempts,
+          rush_yards: proj.rush_yards,
+          rush_td: proj.rush_td,
+          two_point_conversion_passes: proj.two_point_conversion_passes,
+          two_point_conversion_runs: proj.two_point_conversion_runs,
+          two_point_conversion_receptions: proj.two_point_conversion_runs,
+          player_id: proj.player_id,
+          team_id: proj.team_id,
+          game_id: proj.game_id,
+        },
+      });
+    } catch (e) {
+      console.log(proj);
+      console.log(e);
+    }
+  }
+
   // ***************** GETTERS ******************
 
   public async getPlayers(): Promise<Player[]> {
@@ -298,6 +359,15 @@ class DatabaseService {
   public async getNews(): Promise<News[]> {
     try {
       return await this.client.news.findMany();
+    } catch (e) {
+      console.log(e);
+      return null;
+    }
+  }
+
+  public async getAllPlayerProjections(): Promise<PlayerProjections[]> {
+    try {
+      return this.client.playerProjections.findMany();
     } catch (e) {
       console.log(e);
       return null;

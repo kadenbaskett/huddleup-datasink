@@ -1,4 +1,4 @@
-import { NFLGame, NFLTeam, Player, Timeframe, News } from '@prisma/client';
+import { NFLGame, Player, Timeframe, News } from '@prisma/client';
 import { respObj } from '@interfaces/respobj.interface';
 import DatabaseService from '@services/database.service';
 import StatsService from '@services/stats.service';
@@ -15,6 +15,7 @@ const config = {
   schedule: hoursToMilliseconds(1),
   gamesInProgress: 60000, // Update once a minute
   news: 180000, // Update every 3 minutes
+  projections: 300000, // Update every 5 minutes
   allowedPositions: [ 'QB', 'RB', 'WR', 'TE' ],
 };
 
@@ -34,6 +35,7 @@ class App {
     setInterval(this.updateSchedule.bind(this), config.schedule);
     setInterval(this.updateGameScoresAndPlayerStats.bind(this), config.gamesInProgress);
     setInterval(this.updateNews.bind(this), config.news);
+    setInterval(this.updatePlayerProjections.bind(this), config.projections);
   }
 
   async printDatabase() {
@@ -46,8 +48,11 @@ class App {
     const players = await this.db.getPlayers();
     console.log('Players: ', players[0]);
     const stats = await this.db.getAllPlayerStats();
+    console.log('Stats: ', stats[0]);
     const news = await this.db.getNews();
     console.log('News: ', news[0]);
+    const projections = await this.db.getAllPlayerProjections();
+    console.log('Projections: ', projections[0]);
   }
 
   async clearDB() {
@@ -64,6 +69,7 @@ class App {
     await this.db.client.user.deleteMany();
     await this.db.client.timeframe.deleteMany();
     await this.db.client.playerGameStats.deleteMany();
+    await this.db.client.playerProjections.deleteMany();
     await this.db.client.nFLGame.deleteMany();
     await this.db.client.player.deleteMany();
     await this.db.client.nFLTeam.deleteMany();
@@ -84,6 +90,8 @@ class App {
     await this.updateGameScoresAndPlayerStats();
     console.log('Updating general news...');
     await this.updateNews();
+    console.log('Updating player projections...');
+    await this.updatePlayerProjections();
 
     await this.printDatabase();
   }
@@ -265,6 +273,51 @@ class App {
 
               await this.db.updatePlayerGameStats(gameStats);
             }
+          }
+        }
+      }
+    }
+  }
+
+  async updatePlayerProjections() {
+    // get player projections for weeks 1-7
+    for (let i = 1; i <= 7; i++) {
+      const resp: respObj = await this.stats.getAllPlayersProjectedGameStats(2022, i);
+
+      if (resp.data) {
+        const data = Object(resp.data);
+
+        for (const proj of data) {
+          const playerId = await this.db.externalToInternalPlayer(proj.PlayerID);
+          const teamId = await this.db.externalToInternalNFLTeam(proj.TeamID);
+          const gameId = await this.db.externalToInternalNFLGame(Number(proj.GameKey));
+
+          if (playerId) {
+            const gameProjection = {
+              external_player_id: proj.PlayerID,
+              external_game_id: Number(proj.GameKey),
+              player_id: playerId,
+              team_id: teamId,
+              game_id: gameId,
+              pass_yards: Math.floor(proj.PassingYards),
+              pass_attempts: Math.floor(proj.PassingAttempts),
+              completions: Math.floor(proj.PassingCompletions),
+              pass_td: Math.floor(proj.PassingTouchdowns),
+              interceptions_thrown: Math.floor(proj.PassingInterceptions),
+              fumbles: Math.floor(proj.Fumbles),
+              receptions: Math.floor(proj.Receptions),
+              rec_td: Math.floor(proj.ReceivingTouchdowns),
+              rec_yards: Math.floor(proj.ReceivingYards),
+              targets: Math.floor(proj.ReceivingTargets),
+              rush_attempts: Math.floor(proj.RushingAttempts),
+              rush_yards: Math.floor(proj.RushingYards),
+              rush_td: Math.floor(proj.RushingTouchdowns),
+              two_point_conversion_passes: Math.floor(proj.TwoPointConversionPasses),
+              two_point_conversion_runs: Math.floor(proj.TwoPointConversionRuns),
+              two_point_conversion_receptions: Math.floor(proj.TwoPointConversionReceptions),
+            };
+
+            await this.db.updatePlayerProjections(gameProjection);
           }
         }
       }
