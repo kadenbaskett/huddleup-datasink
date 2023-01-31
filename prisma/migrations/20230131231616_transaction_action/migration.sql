@@ -203,6 +203,17 @@ CREATE TABLE `Transaction` (
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- CreateTable
+CREATE TABLE `TransactionAction` (
+    `id` INTEGER NOT NULL AUTO_INCREMENT,
+    `transaction_id` INTEGER NOT NULL DEFAULT 0,
+    `user_id` INTEGER NOT NULL DEFAULT 0,
+    `action_date` DATETIME(3) NOT NULL,
+    `action_type` VARCHAR(191) NOT NULL,
+
+    PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- CreateTable
 CREATE TABLE `News` (
     `id` INTEGER NOT NULL AUTO_INCREMENT,
     `external_id` INTEGER NOT NULL,
@@ -412,6 +423,12 @@ ALTER TABLE `Transaction` ADD CONSTRAINT `Transaction_proposing_team_id_fkey` FO
 
 -- AddForeignKey
 ALTER TABLE `Transaction` ADD CONSTRAINT `Transaction_related_team_id_fkey` FOREIGN KEY (`related_team_id`) REFERENCES `Team`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `TransactionAction` ADD CONSTRAINT `TransactionAction_transaction_id_fkey` FOREIGN KEY (`transaction_id`) REFERENCES `Transaction`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `TransactionAction` ADD CONSTRAINT `TransactionAction_user_id_fkey` FOREIGN KEY (`user_id`) REFERENCES `User`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE `Player` ADD CONSTRAINT `Player_current_nfl_team_external_id_fkey` FOREIGN KEY (`current_nfl_team_external_id`) REFERENCES `NFLTeam`(`external_id`) ON DELETE RESTRICT ON UPDATE CASCADE;
