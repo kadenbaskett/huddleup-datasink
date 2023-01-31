@@ -33,7 +33,7 @@ class Seed {
     const numTeams = 10;
     const usersPerTeam = 3;
     const numUsers = usersPerTeam * numTeams;
-    const users = await this.createFirebaseUsers(numUsers);
+    const users = await this.createFirebaseUsers();
     const leagueNames = this.generateLeagueNames(numLeagues);
 
     for (let i = 0; i < leagueNames.length; i++) {
@@ -56,6 +56,7 @@ class Seed {
     // We can't clear a table that is referenced by another table using a foreign key without first clearing
     // the table that references it
     await this.client.transactionPlayer.deleteMany();
+    await this.client.transactionAction.deleteMany();
     await this.client.transaction.deleteMany();
     await this.client.rosterPlayer.deleteMany();
     await this.client.roster.deleteMany();
@@ -63,6 +64,7 @@ class Seed {
     await this.client.matchup.deleteMany();
     await this.client.team.deleteMany();
     await this.client.teamSettings.deleteMany();
+    await this.client.league.deleteMany();
     await this.client.leagueSettings.deleteMany();
     await this.client.draftSettings.deleteMany();
     await this.client.rosterSettings.deleteMany();
@@ -70,7 +72,6 @@ class Seed {
     await this.client.scoringSettings.deleteMany();
     await this.client.scheduleSettings.deleteMany();
     await this.client.waiverSettings.deleteMany();
-    await this.client.league.deleteMany();
     await this.client.user.deleteMany();
 
     console.log('Cleared db successfully of old league data');
@@ -171,6 +172,7 @@ class Seed {
         trade.week,
         trade.status,
         teamOne.managers[0].user_id,
+        teamOne.managers[1].user_id,
       );
     }
   }
@@ -183,6 +185,7 @@ class Seed {
     weekTradeCreated,
     tradeStatus,
     proposingUserId,
+    approvingUserId,
   ) {
     const rosterPlayerOne = teamOneRoster.players.find((p) => p.position === pos);
     const rosterPlayerTwo = teamTwoRoster.players.find((p) => p.position === pos);
@@ -211,6 +214,17 @@ class Seed {
         user_id: proposingUserId,
       },
     });
+
+    if(tradeStatus == 'Rejected' || tradeStatus == 'Complete') {
+      await this.client.transactionAction.create({
+        data:{
+          transaction_id:created.id,
+          user_id: approvingUserId,
+          action_date: creation,
+          action_type: tradeStatus == 'Rejected' ? 'Reject' : 'Approve',
+        },
+      });
+    }
 
     await this.client.transactionPlayer.create({
       data: {
