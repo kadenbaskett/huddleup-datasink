@@ -210,12 +210,14 @@ CREATE TABLE `News` (
     `time_posted` VARCHAR(191) NOT NULL,
     `title` VARCHAR(191) NOT NULL,
     `content` LONGBLOB NOT NULL,
+    `player_one_id` INTEGER NULL,
+    `player_two_id` INTEGER NULL,
     `external_player_id` INTEGER NULL,
     `external_player_id2` INTEGER NULL,
     `external_team_id` INTEGER NULL,
     `external_team_id2` INTEGER NULL,
-    `source` VARCHAR(191) NOT NULL,
-    `source_url` VARCHAR(191) NOT NULL,
+    `source` VARCHAR(191) NULL,
+    `source_url` VARCHAR(191) NULL,
 
     UNIQUE INDEX `News_external_id_key`(`external_id`),
     PRIMARY KEY (`id`)
@@ -412,6 +414,12 @@ ALTER TABLE `Transaction` ADD CONSTRAINT `Transaction_proposing_team_id_fkey` FO
 
 -- AddForeignKey
 ALTER TABLE `Transaction` ADD CONSTRAINT `Transaction_related_team_id_fkey` FOREIGN KEY (`related_team_id`) REFERENCES `Team`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `News` ADD CONSTRAINT `News_player_one_id_fkey` FOREIGN KEY (`player_one_id`) REFERENCES `Player`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `News` ADD CONSTRAINT `News_player_two_id_fkey` FOREIGN KEY (`player_two_id`) REFERENCES `Player`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE `Player` ADD CONSTRAINT `Player_current_nfl_team_external_id_fkey` FOREIGN KEY (`current_nfl_team_external_id`) REFERENCES `NFLTeam`(`external_id`) ON DELETE RESTRICT ON UPDATE CASCADE;

@@ -88,6 +88,8 @@ class App {
     await this.updateCompletedGames();
     console.log('Updaing game scores and player stats...');
     await this.updateGameScoresAndPlayerStats();
+    console.log('Updating player news...');
+    await this.updatePlayerNews();
     console.log('Updating general news...');
     await this.updateNews();
     console.log('Updating player projections...');
@@ -172,17 +174,22 @@ class App {
 
   async updateNews() {
     const resp: respObj = await this.stats.getNews();
+    const players: Player[] = await this.db.getPlayers();
 
     if (resp.data) {
       const data = Object(resp.data);
 
       const news: News[] = data.map((n) => {
+        const playerOne = players.find((p) => p.external_id === n.PlayerID);
+        const playerTwo = players.find((p) => p.external_id === n.PlayerID2);
         return {
           external_id: n.NewsID,
           updated_date: n.Updated,
           time_posted: n.TimeAgo,
           title: n.Title,
           content: n.Content,
+          player_one_id: playerOne ? playerOne.id : undefined,
+          player_two_id: playerTwo ? playerTwo.id : undefined,
           external_player_id: n.PlayerID,
           external_player_id2: n.PlayerID2,
           external_team_id: n.TeamID,
@@ -321,6 +328,38 @@ class App {
           }
         }
       }
+    }
+  }
+
+  async updatePlayerNews() {
+    const players: Player[] = await this.db.getPlayers();
+
+    for(const p of players)
+    {
+      const pNews: respObj = await this.stats.getPlayerNews(p.id);
+
+      if (pNews.data) {
+        const data = Object(pNews.data);
+
+        const news: News[] = data.map((n) => {
+          return {
+            external_id: n.NewsID,
+            updated_date: n.Updated,
+            time_posted: n.TimeAgo,
+            title: n.Title,
+            content: n.Content,
+            external_player_id: n.PlayerID,
+            external_player_id2: n.PlayerID2,
+            external_team_id: n.TeamID,
+            external_team_id2: n.TeamID2,
+            source: n.OriginalSource,
+            source_url: n.OriginalSourceUrl,
+          };
+        });
+
+        await this.db.setNews(news);
+    }
+      
     }
   }
 

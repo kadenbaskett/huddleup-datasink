@@ -82,7 +82,7 @@ class StatsService {
   }
 
   public async getPlayerNews(playerID: number): Promise<respObj> {
-    playerID = 732;
+    //playerID = 732;
     const url = this.baseScoresURL + 'NewsByPlayerID/' + playerID;
     return await this.getRequest(url);
   }
