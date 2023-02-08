@@ -1,9 +1,7 @@
 import axios from 'axios';
 import { respObj } from '@interfaces/respobj.interface';
 
-
 class StatsService {
-
   key: string;
   baseScoresURL: string;
   baseStatsURL: string;
@@ -11,9 +9,8 @@ class StatsService {
   headers: object;
   options: object;
 
-  constructor()
-  {
-    this.key = '92b33b3c766b4421923b11b00b62adc5';
+  constructor() {
+    this.key = process.env.API_KEY;
     this.headers = { 'Ocp-Apim-Subscription-Key': this.key };
     this.options = { headers: this.headers };
     this.baseScoresURL = 'https://api.sportsdata.io/v3/nfl/scores/json/';
@@ -21,47 +18,46 @@ class StatsService {
     this.baseProjectionURL = 'https://api.sportsdata.io/v3/nfl/projections/json/';
   }
 
+  // Generic wrapper for a get request
   private async getRequest(url: string): Promise<respObj> {
-    try 
-    {
+    try {
       const resp = await axios.get(url, this.options);
       return { data: resp.data, error: null };
-    } 
-    catch (err) 
-    {
+    } catch (err) {
       console.log(err);
       return { data: null, error: err };
     }
   }
 
+  // Endpoints we hit on a recurring basis to keep our database in sync
 
-  // General NFL endpoints with no params
-
-  public async getNFLTeams(): Promise<respObj> {
-    const url = this.baseScoresURL + 'Teams';
+  public async getTimeframes(): Promise<respObj> {
+    const url = this.baseScoresURL + 'Timeframes/all';
     return await this.getRequest(url);
   }
 
-  public async getCurrentWeek(): Promise<respObj> {
-    const url = this.baseScoresURL + 'CurrentWeek';
+  public async getNFLTeams(season: number): Promise<respObj> {
+    const url = this.baseScoresURL + 'Teams/' + season;
     return await this.getRequest(url);
   }
 
-  public async getUpcomingWeek(): Promise<respObj> {
-    const url = this.baseScoresURL + 'UpcomingWeek';
+  public async getPlayers(): Promise<respObj> {
+    const url = this.baseScoresURL + 'Players';
     return await this.getRequest(url);
   }
 
-  public async getLastCompletedWeek(): Promise<respObj> {
-    const url = this.baseScoresURL + 'LastCompletedWeek';
+  public async getSchedules(season: number): Promise<respObj> {
+    const url = this.baseScoresURL + 'Schedules/' + season;
     return await this.getRequest(url);
   }
 
-  public async getCurrentSeason(): Promise<respObj> {
-    const url = this.baseScoresURL + 'CurrentSeason';
+  public async getBoxScore(scoreID: number): Promise<respObj> {
+    const url = this.baseStatsURL + 'BoxScoreByScoreIDV3/' + scoreID;
     return await this.getRequest(url);
   }
-  
+
+  // Unused endpoints (for now)
+
   public async getNews(): Promise<respObj> {
     const url = this.baseScoresURL + 'News';
     return await this.getRequest(url);
@@ -72,34 +68,15 @@ class StatsService {
     return await this.getRequest(url);
   }
 
-  public async getAllPlayersDetails(): Promise<respObj> {
-    const url = this.baseScoresURL + 'Players';
-    return await this.getRequest(url);
-  }
-
-
-  // Endpoints requiring params but unrelated to individual players
-  
-  public async getAllTeamSchedules(season: number): Promise<respObj> {
-    const url = this.baseScoresURL + 'Schedules/' + season;
-    return await this.getRequest(url);
-  }
-
-  public async getByeWeeks(season: number): Promise<respObj> {
-    const url = this.baseScoresURL + 'Byes/' + season;
-    return await this.getRequest(url);
-  }
-
   public async getAllPlayersProjectedGameStats(season: number, week: number): Promise<respObj> {
-    const url = this.baseProjectionURL + 'PlayerGameProjectionStatsByWeek/' + season + '/' + week;
+    const url =
+      this.baseProjectionURL + 'PlayerGameProjectionStatsByWeek/' + season + 'REG/' + week;
     return await this.getRequest(url);
   }
-
 
   // Endpoints requiring PlayerID params
 
   public async getPlayerDetails(playerID: number): Promise<respObj> {
-    playerID = 732;
     const url = this.baseScoresURL + 'Player/' + playerID;
     return await this.getRequest(url);
   }
@@ -109,27 +86,28 @@ class StatsService {
     const url = this.baseScoresURL + 'NewsByPlayerID/' + playerID;
     return await this.getRequest(url);
   }
-  
-  public async getPlayerGameLogs(playerID: number, season: number, numberOfGames: number): Promise<respObj> {
+
+  public async getPlayerGameLogs(
+    playerID: number,
+    season: number,
+    numberOfGames: number,
+  ): Promise<respObj> {
     const gamesToGet: string = numberOfGames ? String(numberOfGames) : 'all';
-    const url = this.baseStatsURL + 'PlayerGameStatsBySeason/' + season + '/' + playerID + '/' + gamesToGet;
+    const url =
+      this.baseStatsURL + 'PlayerGameStatsBySeason/' + season + '/' + playerID + '/' + gamesToGet;
     return await this.getRequest(url);
   }
-  
+
   public async getPlayerStatsByWeek(playerID: number, season: number): Promise<respObj> {
     const url = this.baseStatsURL + 'PlayerGameStatsByWeek/' + season + '/' + playerID;
     return await this.getRequest(url);
   }
 
   public async getPlayerProjectedSeasonStats(playerID: number, season: number): Promise<respObj> {
-    const url = this.baseProjectionURL + 'PlayerSeasonProjectionStatsByPlayerID/' + season + '/' + playerID;
+    const url =
+      this.baseProjectionURL + 'PlayerSeasonProjectionStatsByPlayerID/' + season + '/' + playerID;
     return await this.getRequest(url);
   }
-
-
-  
-  
-
 }
 
 export default StatsService;
