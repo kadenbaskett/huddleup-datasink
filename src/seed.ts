@@ -11,7 +11,7 @@ import {
 } from '@prisma/client';
 // import { createAccount } from '../firebase/firebase';
 import { calculateSeasonLength, createMatchups } from './services/helpers.service';
-
+import randomstring from 'randomstring';
 /*
  *  Seeds the database with mock data. The simulate league function will
  *  create new users, leagues, teams, rosters, and roster players
@@ -89,7 +89,7 @@ class Seed {
   ) {
     const teamNames = this.generateTeamNames(numTeams);
     const description = `example description for ${name}`;
-
+    
     const leagueSettings = await this.createLeagueSettings(numTeams, true, 2, numUsers, 'PPR');
     const league = await this.createLeague(name, description, commish.id, leagueSettings.id);
     const teams = await this.createTeams(league, users, teamNames);
@@ -488,10 +488,12 @@ class Seed {
   }
 
   async createLeague(name, description, commissioner_id, settings_id) {
+    const token = randomstring.generate(7);
     const league = {
       name,
       description,
       commissioner_id,
+      token,
       settings_id,
     };
     const resp = await this.client.league.create({
@@ -505,6 +507,7 @@ class Seed {
     const teams = [];
 
     for (let i = 0; i < teamNames.length; i++) {
+      const token = randomstring.generate(7);
       const ts = await this.client.teamSettings.create({
         data: {},
       });
@@ -512,6 +515,7 @@ class Seed {
       const team = {
         name: teamNames[i],
         league_id: league.id,
+        token,
         team_settings_id: ts.id,
       };
 
