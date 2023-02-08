@@ -230,7 +230,7 @@ class Seed {
       data: {
         transaction_id: created.id,
         player_id: rosterPlayerOne.player_id,
-        joins_proposing_team: true,
+        joins_proposing_team: false,
       },
     });
 
@@ -238,7 +238,7 @@ class Seed {
       data: {
         transaction_id: created.id,
         player_id: rosterPlayerTwo.player_id,
-        joins_proposing_team: false,
+        joins_proposing_team: true,
       },
     });
 
