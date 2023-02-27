@@ -16,7 +16,7 @@ const config = {
   gamesInProgress: 60000, // Update once a minute
   news: 180000, // Update every 3 minutes
   projections: 300000, // Update every 5 minutes
-  allowedPositions: ['QB', 'RB', 'WR', 'TE'],
+  allowedPositions: [ 'QB', 'RB', 'WR', 'TE' ],
 };
 
 class App {

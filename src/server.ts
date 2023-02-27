@@ -47,10 +47,7 @@ if (process.env.NODE_ENV === 'development') {
   } else if (simulateMatchups) {
     console.log('simulating matchups');
     seed.simulateMatchups(Number(args[1]));
-  } else if (simulateMatchups) {
-    console.log('simulating matchups');
-    seed.simulateMatchups(Number(args[1]));
-  } else if (simulateMatchups) {
+  } else if (simulateWeek) {
     // only works after draft has been simulated
     console.log('simulating week');
     seed.simulateWeek(Number(args[1]), Number(args[2])); // leagueID, week number

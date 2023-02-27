@@ -77,7 +77,15 @@ class Seed {
   async simulateMatchups(leagueId: number) {
     const teams = await this.client.team.findMany({ where: { league_id: leagueId } });
     const seasonLength = calculateSeasonLength(4);
-    await createMatchups(teams, seasonLength);
+    const matchups = await createMatchups(teams, seasonLength);
+    for (const matchup of matchups) {
+      await this.client.matchup.create({
+        data: {
+          ...matchup,
+          league_id: leagueId,
+        },
+      });
+    }
   }
 
   async simulateTimeframe(week: number) {
@@ -105,6 +113,9 @@ class Seed {
         team: {
           league_id: leagueId,
         },
+      },
+      include: {
+        players: true,
       },
     });
 
@@ -698,8 +709,8 @@ class Seed {
       TOTAL: 15,
     };
 
-    const allowedPositions = ['RB', 'WR', 'TE', 'QB'];
-    const flexPositions = ['RB', 'WR', 'TE'];
+    const allowedPositions = [ 'RB', 'WR', 'TE', 'QB' ];
+    const flexPositions = [ 'RB', 'WR', 'TE' ];
     const players = await this.client.player.findMany();
     this.shuffleArray(players);
 
@@ -771,7 +782,7 @@ class Seed {
   shuffleArray(array) {
     for (let i = array.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
-      [array[i], array[j]] = [array[j], array[i]];
+      [ array[i], array[j] ] = [ array[j], array[i] ];
     }
   }
 
