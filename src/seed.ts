@@ -12,15 +12,109 @@ import {
 // import { createAccount } from '../firebase/firebase';
 import { calculateSeasonLength, createMatchups } from './services/helpers.service';
 import randomstring from 'randomstring';
+import DatabaseService from './services/database.service';
 /*
  *  Seeds the database with mock data. The simulate league function will
  *  create new users, leagues, teams, rosters, and roster players
  */
 class Seed {
   client: PrismaClient;
+  db: DatabaseService;
 
   constructor() {
     this.client = new PrismaClient();
+    this.db = new DatabaseService();
+  }
+
+  async createEmptyLeague() {
+    const leagueSettings = await this.createLeagueSettings(8, true, 2, 2, 'PPR');
+    const league = await this.createLeague('fake name', 'fake description', 1, leagueSettings.id);
+  }
+
+  async fillLeague(leagueId: number) {
+    const league = await this.client.league.findFirst({
+      where: { id: leagueId },
+      include: {
+        settings: true,
+        teams: {
+          include: {
+            managers: true,
+          },
+        },
+      },
+    });
+    let users = await this.createFirebaseUsers();
+    // remove users who are on teams from users to be added to league
+    league.teams.forEach((team) => {
+      team.managers.forEach((manager) => {
+        users = users.filter((user) => user.id !== manager.id);
+      });
+    });
+    // add managers to unfinished teams
+    league.teams.map(async (team) => {
+      let numManagers = team.managers.length;
+      while (numManagers < league.settings.min_players) {
+        // add user to team
+        await this.client.userToTeam.create({
+          data: { team_id: team.id, user_id: users[0].id, is_captain: false },
+        });
+        numManagers++;
+        users.splice(1);
+      }
+    });
+    // add remaining teams
+    const neededTeams = league.settings.num_teams - league.teams.length;
+    const teamNames = this.generateTeamNames(neededTeams);
+    await this.createTeams(league, users, teamNames);
+  }
+
+  async simulateDraft(leagueId: number) {
+    const teams = await this.client.team.findMany({ where: { league_id: leagueId } });
+    await this.simulateTimeframe(1);
+    await this.buildRandomRostersSamePlayersEveryWeek(1, 2022, teams);
+  }
+
+  async simulateMatchups(leagueId: number) {
+    const teams = await this.client.team.findMany({ where: { league_id: leagueId } });
+    const seasonLength = calculateSeasonLength(4);
+    await createMatchups(teams, seasonLength);
+  }
+
+  async simulateTimeframe(week: number) {
+    const timeframes = await this.client.timeframe.findMany();
+    timeframes.forEach(async (tf) => {
+      if (Number(tf.season) > 2021 && Number(tf.week) > week && Number(tf.type) === 1) {
+        tf.has_ended = false;
+        tf.has_started = false;
+      } else if (Number(tf.season) > 2021 && Number(tf.week) === week && Number(tf.type) === 1) {
+        tf.has_ended = false;
+        tf.has_started = true;
+      } else if (Number(tf.season) > 2021 && Number(tf.week) < week && Number(tf.type) === 1) {
+        tf.has_ended = true;
+        tf.has_started = true;
+      }
+      await this.client.timeframe.update({ where: { id: tf.id }, data: tf });
+    });
+  }
+
+  async simulateWeek(leagueId: number, week: number) {
+    const previousTimeframe = await this.db.getTimeframe();
+    const rosters = await this.client.roster.findMany({
+      where: {
+        week: previousTimeframe.week,
+        team: {
+          league_id: leagueId,
+        },
+      },
+    });
+
+    await this.simulateTimeframe(week);
+
+    rosters.forEach(async (roster) => {
+      for (let i = previousTimeframe.week; i <= week; i++) {
+        await this.copyRoster(i, roster);
+      }
+    });
   }
 
   async seedDB() {
@@ -89,7 +183,7 @@ class Seed {
   ) {
     const teamNames = this.generateTeamNames(numTeams);
     const description = `example description for ${name}`;
-    
+
     const leagueSettings = await this.createLeagueSettings(numTeams, true, 2, numUsers, 'PPR');
     const league = await this.createLeague(name, description, commish.id, leagueSettings.id);
     const teams = await this.createTeams(league, users, teamNames);
@@ -215,10 +309,10 @@ class Seed {
       },
     });
 
-    if(tradeStatus == 'Rejected' || tradeStatus == 'Complete') {
+    if (tradeStatus == 'Rejected' || tradeStatus == 'Complete') {
       await this.client.transactionAction.create({
-        data:{
-          transaction_id:created.id,
+        data: {
+          transaction_id: created.id,
           user_id: approvingUserId,
           action_date: creation,
           action_type: tradeStatus == 'Rejected' ? 'Reject' : 'Approve',
@@ -604,8 +698,8 @@ class Seed {
       TOTAL: 15,
     };
 
-    const allowedPositions = [ 'RB', 'WR', 'TE', 'QB' ];
-    const flexPositions = [ 'RB', 'WR', 'TE' ];
+    const allowedPositions = ['RB', 'WR', 'TE', 'QB'];
+    const flexPositions = ['RB', 'WR', 'TE'];
     const players = await this.client.player.findMany();
     this.shuffleArray(players);
 
@@ -677,7 +771,7 @@ class Seed {
   shuffleArray(array) {
     for (let i = array.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
-      [ array[i], array[j] ] = [ array[j], array[i] ];
+      [array[i], array[j]] = [array[j], array[i]];
     }
   }
 
