@@ -29,5 +29,7 @@ npx prisma migrate deploy
 npm i
 npm run initAndSeed
 
+# small comment
+
 # Uncomment when we want datasink to run
 # pm2 start npm --name "datasink" -- start
