@@ -24,11 +24,11 @@ git fetch
 git checkout main
 git pull
 
-cd prisma
+# cd prisma
 
-sudo rm -r migrations
+# sudo rm -r migrations
 
-npx prisma migrate dev --name my_migration
+npx prisma migrate deploy
 
 npm i
 npm run initAndSeed
