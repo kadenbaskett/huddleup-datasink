@@ -28,7 +28,7 @@ class Seed {
 
   async createEmptyLeague() {
     const leagueSettings = await this.createLeagueSettings(8, true, 2, 2, 'PPR');
-    const league = await this.createLeague('fake name', 'fake description', 1, leagueSettings.id);
+    await this.createLeague('fake name', 'fake description', 1, leagueSettings.id);
   }
 
   async fillLeague(leagueId: number) {
@@ -709,8 +709,8 @@ class Seed {
       TOTAL: 15,
     };
 
-    const allowedPositions = ['RB', 'WR', 'TE', 'QB'];
-    const flexPositions = ['RB', 'WR', 'TE'];
+    const allowedPositions = [ 'RB', 'WR', 'TE', 'QB' ];
+    const flexPositions = [ 'RB', 'WR', 'TE' ];
     const players = await this.client.player.findMany();
     this.shuffleArray(players);
 
@@ -782,7 +782,7 @@ class Seed {
   shuffleArray(array) {
     for (let i = array.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
-      [array[i], array[j]] = [array[j], array[i]];
+      [ array[i], array[j] ] = [ array[j], array[i] ];
     }
   }
 

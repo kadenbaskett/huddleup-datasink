@@ -57,8 +57,8 @@ class App {
 
   async clearDB() {
     console.log('Clearing the database before initial update');
-    await this.db.client.transactionPlayer.deleteMany();
     await this.db.client.transaction.deleteMany();
+    await this.db.client.transactionPlayer.deleteMany();
     await this.db.client.rosterPlayer.deleteMany();
     await this.db.client.roster.deleteMany();
     await this.db.client.userToTeam.deleteMany();
