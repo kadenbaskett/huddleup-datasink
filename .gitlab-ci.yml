@@ -10,5 +10,7 @@ deployToAWS:
   stage: deploy
   script:
     - bash deployAWS/deploy.sh
-  tags:
-    - deploy main
+  # tags:
+  #   - deploy main
+
+  # this is commented so that it wont run on runner
