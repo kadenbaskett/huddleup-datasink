@@ -280,8 +280,9 @@ class App {
   }
 
   async updatePlayerProjections() {
+    const timeframe: Timeframe = await this.db.getTimeframe();
     // get player projections for weeks 1-7
-    for (let i = 1; i <= 7; i++) {
+    for (let i = 1; i <= timeframe.week; i++) {
       const resp: respObj = await this.stats.getAllPlayersProjectedGameStats(2022, i);
 
       if (resp.data) {
