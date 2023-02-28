@@ -21,7 +21,7 @@ pm2 delete datasink
 set -e
 
 git fetch
-git checkout main
+git checkout ci-cd
 git pull
 
 npx prisma migrate deploy
