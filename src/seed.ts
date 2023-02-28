@@ -59,7 +59,7 @@ class Seed {
           data: { team_id: team.id, user_id: users[0].id, is_captain: false },
         });
         numManagers++;
-        users.splice(1);
+        users.shift();
       }
     });
     // add remaining teams
@@ -709,8 +709,8 @@ class Seed {
       TOTAL: 15,
     };
 
-    const allowedPositions = [ 'RB', 'WR', 'TE', 'QB' ];
-    const flexPositions = [ 'RB', 'WR', 'TE' ];
+    const allowedPositions = ['RB', 'WR', 'TE', 'QB'];
+    const flexPositions = ['RB', 'WR', 'TE'];
     const players = await this.client.player.findMany();
     this.shuffleArray(players);
 
@@ -782,7 +782,7 @@ class Seed {
   shuffleArray(array) {
     for (let i = array.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
-      [ array[i], array[j] ] = [ array[j], array[i] ];
+      [array[i], array[j]] = [array[j], array[i]];
     }
   }
 
