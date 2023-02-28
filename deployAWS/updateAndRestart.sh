@@ -24,10 +24,6 @@ git fetch
 git checkout main
 git pull
 
-# cd prisma
-
-# sudo rm -r migrations
-
 npx prisma migrate deploy
 
 npm i
