@@ -1,0 +1,16 @@
+before_script:
+  - 'which ssh-agent || ( apt-get update -y && apt-get install openssh-client -y )'
+  - mkdir -p ~/.ssh && chmod 700 ~/.ssh
+
+stages:
+  - deploy
+deployToAWS:
+  # only:
+  #   - main
+  stage: deploy
+  script:
+    - bash deployAWS/deploy.sh
+  # tags:
+  #   - deploy main
+
+  # this is commented so that it wont run on runner
